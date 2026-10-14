@@ -20,7 +20,15 @@ const getKey = async () => {
  */
 export const generateToken = async (payload, expiresIn) => {
   const key = await getKey();
-  return await protocol.Encrypt(key, payload);
+  const match = /^([0-9]+)([smhd])$/.exec(expiresIn);
+  if (!match) {
+    throw new Error('Invalid token expiry');
+  }
+
+  const units = { s: 1, m: 60, h: 3600, d: 86400 };
+  const expiresAt = Date.now() + Number(match[1]) * units[match[2]] * 1000;
+  const exp = new Date(expiresAt).toISOString();
+  return await protocol.Encrypt(key, { ...payload, exp });
 };
 
 /**
@@ -31,5 +39,8 @@ export const generateToken = async (payload, expiresIn) => {
 export const verifyToken = async (token) => {
   const key = await getKey();
   const { claims } = await protocol.Decrypt(key, token);
+  if (typeof claims.exp !== 'string' || Date.parse(claims.exp) <= Date.now()) {
+    throw new Error('Token expired');
+  }
   return claims;
 };
