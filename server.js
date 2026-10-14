@@ -8,6 +8,12 @@ const app = express();
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
+// Log every incoming request
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Root route to handle GET / at localhost:3000
 app.get('/', (req, res) => {
   res.status(200).json({
