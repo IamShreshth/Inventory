@@ -1,0 +1,83 @@
+# ==========================================
+# 1. Next.js Core & Frontend Dependencies
+# ==========================================
+/node_modules
+/.pnp
+.pnp.js
+
+# Build and export outputs
+/.next/
+/out/
+/build
+
+# ==========================================
+# 2. Environment Variables & Secrets (CRITICAL)
+# ==========================================
+# Exclude all actual secret files
+.env
+.env*.local
+.env.production
+.env.development
+
+# DO NOT ignore the template file so team members know what keys to set
+!.env.example
+
+# ==========================================
+# 3. Full-Stack Databases & ORMs
+# ==========================================
+# Prisma: Ignore SQLite local databases (if used)
+*.db
+*.db-journal
+
+# Drizzle / General migration states (Optional: keep migrations, ignore local configs)
+.sqlite
+
+# Supabase / Local backend services
+.supabase/functions/.env
+.supabase/storage
+.supabase/db
+
+# ==========================================
+# 4. Containers, Infrastructure & Platforms
+# ==========================================
+# Docker local data volumes (never commit persistent DB container data)
+.docker/data/
+docker-compose.override.yml
+
+# Vercel deployment metadata
+.vercel
+
+# ==========================================
+# 5. Testing & Quality Assurance
+# ==========================================
+# Testing coverage
+/coverage
+
+# E2E Testing (Playwright / Cypress)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+cypress/videos/
+cypress/screenshots/
+
+# ==========================================
+# 6. System, IDE, and Log Files
+# ==========================================
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDEs and OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
