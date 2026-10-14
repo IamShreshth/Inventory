@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: berm-inventory-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: berm_inventory
+      POSTGRES_USER: berm_app
+      POSTGRES_PASSWORD: change_me
+    ports:
+      - "5432:5432"
+    volumes:
+      - berm_inventory_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U berm_app -d berm_inventory"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  berm_inventory_pgdata:
