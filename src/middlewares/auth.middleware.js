@@ -1,4 +1,4 @@
-const { verifyToken } = require('../utils/paseto.util');
+import { verifyToken } from '../utils/paseto.util.js';
 
 const formatError = (code, message) => ({
   error: { code, message, details: [] },
@@ -23,4 +23,4 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-module.exports = authenticate;
+export default authenticate;

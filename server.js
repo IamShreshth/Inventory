@@ -1,7 +1,8 @@
-const express = require('express');
-require('dotenv').config();
+import express from 'express';
+import 'dotenv/config';
 
-const authRoutes = require('./src/routes/auth.routes');
+import authRoutes from './src/routes/auth.routes.js';
+import authenticate from './src/middlewares/auth.middleware.js';
 
 const app = express();
 
@@ -12,7 +13,6 @@ app.use(express.json());
 app.use('/api/v1/auth', authRoutes);
 
 // Example of a protected route using the middleware
-const authenticate = require('./src/middlewares/auth.middleware');
 app.get('/api/v1/users/me', authenticate, (req, res) => {
   res.status(200).json({ data: req.user });
 });

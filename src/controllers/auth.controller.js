@@ -1,5 +1,5 @@
-const bcrypt = require('bcryptjs');
-const { generateToken, verifyToken } = require('../utils/paseto.util');
+import bcrypt from 'bcryptjs';
+import { generateToken, verifyToken } from '../utils/paseto.util.js';
 
 // Mock database for demonstration purposes. 
 // In a real app, replace this with your actual DB queries.
@@ -17,7 +17,7 @@ const formatError = (code, message, details = []) => ({
   error: { code, message, details },
 });
 
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -50,7 +50,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.refresh = async (req, res) => {
+export const refresh = async (req, res) => {
   try {
     const { refresh_token } = req.body;
 
@@ -71,17 +71,17 @@ exports.refresh = async (req, res) => {
   }
 };
 
-exports.logout = async (req, res) => {
+export const logout = async (req, res) => {
   // Stateless logout. Client should discard the token.
   return res.status(204).send();
 };
 
-exports.forgotPassword = async (req, res) => {
+export const forgotPassword = async (req, res) => {
   // Always return 200 to prevent email enumeration
   return res.status(200).json({ message: 'If the email exists, a reset link has been sent.' });
 };
 
-exports.resetPassword = async (req, res) => {
+export const resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
 

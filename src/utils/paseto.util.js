@@ -1,7 +1,16 @@
-const { V4: pasetoV4 } = require('paseto');
-require('dotenv').config();
+import { LocalProtocol } from 'paseto';
+import { DecryptFactory, EncryptFactory, GenerateKeyFactory } from 'paseto/v3/local';
+import 'dotenv/config';
 
-const secretKey = Buffer.from(process.env.PASETO_SECRET_KEY, 'hex');
+const protocol = new LocalProtocol(GenerateKeyFactory, EncryptFactory, DecryptFactory);
+let keyPromise;
+
+const getKey = async () => {
+  if (!keyPromise) {
+    keyPromise = protocol.GenerateKey();
+  }
+  return await keyPromise;
+};
 
 /**
  * Generates a PASETO token
@@ -9,8 +18,9 @@ const secretKey = Buffer.from(process.env.PASETO_SECRET_KEY, 'hex');
  * @param {string} expiresIn - Expiration time (e.g., '15m', '7d')
  * @returns {Promise<string>} - The generated PASETO token
  */
-const generateToken = async (payload, expiresIn) => {
-  return await pasetoV4.encrypt(payload, secretKey, { expiresIn });
+export const generateToken = async (payload, expiresIn) => {
+  const key = await getKey();
+  return await protocol.Encrypt(key, payload);
 };
 
 /**
@@ -18,11 +28,8 @@ const generateToken = async (payload, expiresIn) => {
  * @param {string} token - The PASETO token to verify
  * @returns {Promise<object>} - The decrypted payload
  */
-const verifyToken = async (token) => {
-  return await pasetoV4.decrypt(token, secretKey);
-};
-
-module.exports = {
-  generateToken,
-  verifyToken,
+export const verifyToken = async (token) => {
+  const key = await getKey();
+  const { claims } = await protocol.Decrypt(key, token);
+  return claims;
 };
