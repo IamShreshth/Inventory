@@ -16,6 +16,26 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health endpoint (no authentication required)
+app.get('/health', async (req, res) => {
+  try {
+    await checkDatabase();
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'berm-inventory-api',
+      database: 'connected',
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      service: 'berm-inventory-api',
+      database: 'disconnected',
+    });
+  }
+});
+
 // Root route to handle GET / at localhost:3000
 app.get('/', (req, res) => {
   res.status(200).json({
@@ -24,14 +44,15 @@ app.get('/', (req, res) => {
   });
 });
 
-// Mount authentication routes under /api/v1/auth[cite: 3]
+// Mount authentication routes under /api/v1/auth
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/users', authenticate, usersRouter);
 
-// Example of a protected route using the authentication middleware[cite: 2]
+// Protected /users/me route (must come before /api/v1/users to avoid conflict)
 app.get('/api/v1/users/me', authenticate, (req, res) => {
   res.status(200).json({ data: req.user });
 });
+
+app.use('/api/v1/users', authenticate, usersRouter);
 
 // Global error fallback handler
 app.use((err, req, res, next) => {

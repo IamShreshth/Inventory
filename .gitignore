@@ -69,6 +69,7 @@ cypress/screenshots/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+PROGRESS.md
 pnpm-debug.log*
 
 # IDEs and OS
