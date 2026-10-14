@@ -3,6 +3,7 @@ import 'dotenv/config';
 import authRoutes from './src/routes/auth.routes.js';
 import authenticate from './src/middlewares/auth.middleware.js';
 import { checkDatabase } from './src/db/pool.js';
+import usersRouter from './src/modules/users/users.routes.js';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get('/', (req, res) => {
 
 // Mount authentication routes under /api/v1/auth[cite: 3]
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', authenticate, usersRouter);
 
 // Example of a protected route using the authentication middleware[cite: 2]
 app.get('/api/v1/users/me', authenticate, (req, res) => {
