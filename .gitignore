@@ -1,7 +1,9 @@
 # ==========================================
-# 1. Next.js Core & Frontend Dependencies
+# 1. Node.js & Dependencies
 # ==========================================
+node_modules/
 /node_modules
+frontend/node_modules
 /.pnp
 .pnp.js
 
@@ -9,6 +11,7 @@
 /.next/
 /out/
 /build
+frontend/dist
 
 # ==========================================
 # 2. Environment Variables & Secrets (CRITICAL)
@@ -73,9 +76,10 @@ PROGRESS.md
 ISSUES_PROGRESS.md
 pnpm-debug.log*
 ALERTS_SETUP.md
-ALERTS_COMPLETE.mcontinud
+ALERTS_COMPLETE.md
 BORROWING_COMPLETE.md
 BORROWING_SUMMARY.md
+BACKEND_DOCUMENTATION.md
 IMPLEMENTATION_PLAN.md
 
 # IDEs and OS
