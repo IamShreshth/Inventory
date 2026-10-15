@@ -72,6 +72,10 @@ yarn-error.log*
 PROGRESS.md
 ISSUES_PROGRESS.md
 pnpm-debug.log*
+ALERTS_SETUP.md
+ALERTS_COMPLETE.md
+BORROWING_COMPLETE.md
+BORROWING_SUMMARY.md
 
 # IDEs and OS
 .DS_Store
