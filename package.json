@@ -6,9 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "nodemon server.js",
-    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "nodemon server.js",
     "build": "cd frontend && npm run build",
     "build:start": "npm run build && npm start",
     "test": "vitest run",
