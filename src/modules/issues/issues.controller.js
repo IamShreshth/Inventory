@@ -142,3 +142,17 @@ export async function getDroppedIssues(req, res, next) {
     next(error);
   }
 }
+
+export async function directReturnIssue(req, res, next) {
+  try {
+    const receivedBy = req.validated.body.received_by || req.user.id;
+    const issue = await issuesService.directReturn(
+      req.validated.params.id,
+      req.validated.body,
+      receivedBy
+    );
+    res.status(200).json({ data: issue });
+  } catch (error) {
+    next(error);
+  }
+}

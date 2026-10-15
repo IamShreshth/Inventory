@@ -1,11 +1,13 @@
 // src/modules/issues/issues.service.js
 import * as issuesRepository from './issues.repository.js';
 import { pool } from '../../db/pool.js';
+import { withTransaction } from '../../db/transaction.js';
 import { AppError } from '../../shared/app-error.js';
+import { logIssueAction } from '../../shared/audit.service.js';
 
 // Calculate due date based on category defaults or asset override
-async function calculateDueDate(assetId) {
-  const { rows } = await pool.query(
+async function calculateDueDate(assetId, client = pool) {
+  const { rows } = await client.query(
     `SELECT 
       COALESCE(a.loan_days_override, c.default_loan_days) as loan_days
      FROM assets a
@@ -15,7 +17,7 @@ async function calculateDueDate(assetId) {
   );
 
   if (!rows[0]) {
-    throw new AppError(404, 'NOT_FOUND', 'Asset not found');
+    throw new AppError('NOT_FOUND', 'Asset not found', 404);
   }
 
   const loanDays = rows[0].loan_days;
@@ -24,70 +26,106 @@ async function calculateDueDate(assetId) {
   return dueDate;
 }
 
-// Check if asset is available for borrowing
-async function checkAssetAvailability(assetId, requestedQuantity) {
-  const { rows } = await pool.query(
+// Check if asset is available for borrowing (with optional row locking)
+async function checkAssetAvailability(assetId, requestedQuantity, client = pool, lock = false) {
+  const lockClause = lock ? 'FOR UPDATE OF a' : '';
+  
+  const { rows } = await client.query(
     `SELECT 
+      a.id,
       a.quantity as total_quantity,
       a.tracking,
       a.is_issuable,
       a.status,
+      a.condition,
       COALESCE(SUM(i.quantity) FILTER (WHERE i.status IN ('requested', 'active', 'dropped')), 0)::int as issued_quantity
      FROM assets a
      LEFT JOIN issues i ON a.id = i.asset_id
      WHERE a.id = $1
-     GROUP BY a.id`,
+     GROUP BY a.id
+     ${lockClause}`,
     [assetId]
   );
 
   if (!rows[0]) {
-    throw new AppError(404, 'NOT_FOUND', 'Asset not found');
+    throw new AppError('NOT_FOUND', 'Asset not found', 404);
   }
 
   const asset = rows[0];
 
   if (!asset.is_issuable) {
-    throw new AppError(409, 'NOT_ISSUABLE', 'This asset is not available for borrowing');
+    throw new AppError('NOT_ISSUABLE', 'This asset is not available for borrowing', 409);
   }
 
   if (asset.status !== 'available') {
-    throw new AppError(409, 'NOT_AVAILABLE', `Asset status is ${asset.status}`);
+    throw new AppError('NOT_AVAILABLE', `Asset status is ${asset.status}`, 409);
   }
 
   const availableQuantity = asset.total_quantity - asset.issued_quantity;
 
   if (requestedQuantity > availableQuantity) {
-    throw new AppError(409, 'INSUFFICIENT_QUANTITY', 
-      `Only ${availableQuantity} unit(s) available, requested ${requestedQuantity}`);
+    throw new AppError('INSUFFICIENT_QUANTITY', 
+      `Only ${availableQuantity} unit(s) available, requested ${requestedQuantity}`, 409);
   }
 
   return asset;
 }
 
 export async function createIssue(issueData, actorId) {
-  // Use actor as borrower if not specified (self-borrow)
-  const borrowerId = issueData.borrower_id || actorId;
+  return withTransaction(async (client) => {
+    const borrowerId = issueData.borrower_id || actorId;
 
-  // Check if borrower is blocked
-  const block = await issuesRepository.checkBorrowerBlocks(borrowerId);
-  if (block) {
-    throw new AppError(403, 'BORROWER_BLOCKED', 
-      `Borrower is blocked: ${block.reason}. ${block.blocked_until ? `Until ${block.blocked_until}` : 'Indefinitely'}`);
-  }
+    // Check borrower blocks
+    const { rows: blockRows } = await client.query(
+      `SELECT * FROM borrower_blocks 
+       WHERE user_id = $1 
+         AND is_active = true
+         AND (blocked_until IS NULL OR blocked_until > NOW())
+       LIMIT 1`,
+      [borrowerId]
+    );
 
-  // Check asset availability
-  await checkAssetAvailability(issueData.asset_id, issueData.quantity);
+    if (blockRows[0]) {
+      throw new AppError('BORROWER_BLOCKED', 
+        `Borrower is blocked: ${blockRows[0].reason}. ${blockRows[0].blocked_until ? `Until ${blockRows[0].blocked_until}` : 'Indefinitely'}`, 403);
+    }
 
-  // Calculate due date
-  const dueDate = await calculateDueDate(issueData.asset_id);
+    // Check and lock asset availability
+    await checkAssetAvailability(issueData.asset_id, issueData.quantity, client, true);
 
-  const issue = await issuesRepository.createIssue({
-    ...issueData,
-    borrower_id: borrowerId,
-    due_at: dueDate,
+    // Calculate due date
+    const dueDate = await calculateDueDate(issueData.asset_id, client);
+
+    // Create issue
+    const { rows } = await client.query(
+      `INSERT INTO issues (
+        asset_id, quantity, borrower_id, on_behalf_of_org, purpose, 
+        status, requested_at, due_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7)
+      RETURNING *`,
+      [
+        issueData.asset_id,
+        issueData.quantity,
+        borrowerId,
+        issueData.on_behalf_of_org || null,
+        issueData.purpose || null,
+        'requested',
+        dueDate,
+      ]
+    );
+
+    const issue = rows[0];
+
+    // Log audit entry
+    await logIssueAction('create_request', issue.id, actorId, {
+      asset_id: issue.asset_id,
+      quantity: issue.quantity,
+      borrower_id: borrowerId,
+      due_at: dueDate,
+    }, client);
+
+    return issuesRepository.getIssueById(issue.id);
   });
-
-  return issuesRepository.getIssueById(issue.id);
 }
 
 export async function listIssues({ limit, offset, filters }) {
@@ -117,151 +155,277 @@ export async function updateIssue(id, fields) {
 }
 
 export async function issueAsset(issueId, issuedBy) {
-  const issue = await issuesRepository.getIssueById(issueId);
-  if (!issue) {
-    throw new AppError(404, 'NOT_FOUND', 'Issue not found');
-  }
+  return withTransaction(async (client) => {
+    // Lock and get issue
+    const { rows: issueRows } = await client.query(
+      `SELECT i.*, a.id as asset_id
+       FROM issues i
+       JOIN assets a ON i.asset_id = a.id
+       WHERE i.id = $1
+       FOR UPDATE OF i`,
+      [issueId]
+    );
 
-  if (issue.status !== 'requested') {
-    throw new AppError(409, 'INVALID_STATE_TRANSITION', 
-      `Cannot issue from status ${issue.status}`);
-  }
+    if (!issueRows[0]) {
+      throw new AppError('NOT_FOUND', 'Issue not found', 404);
+    }
 
-  // Re-check availability
-  await checkAssetAvailability(issue.asset_id, issue.quantity);
+    const issue = issueRows[0];
 
-  // Re-check borrower blocks
-  const block = await issuesRepository.checkBorrowerBlocks(issue.borrower_id);
-  if (block) {
-    throw new AppError(403, 'BORROWER_BLOCKED', 
-      `Borrower is blocked: ${block.reason}`);
-  }
+    if (issue.status !== 'requested') {
+      throw new AppError('INVALID_STATE_TRANSITION', 
+        `Cannot issue from status ${issue.status}. Must be in requested state.`, 409);
+    }
 
-  const updated = await issuesRepository.updateIssue(issueId, {
-    status: 'active',
-    issued_at: new Date(),
-    issued_by: issuedBy,
+    // Re-check borrower blocks
+    const { rows: blockRows } = await client.query(
+      `SELECT * FROM borrower_blocks 
+       WHERE user_id = $1 
+         AND is_active = true
+         AND (blocked_until IS NULL OR blocked_until > NOW())
+       LIMIT 1`,
+      [issue.borrower_id]
+    );
+
+    if (blockRows[0]) {
+      throw new AppError('BORROWER_BLOCKED', 
+        `Borrower is blocked: ${blockRows[0].reason}`, 403);
+    }
+
+    // Re-check and lock asset availability
+    await checkAssetAvailability(issue.asset_id, issue.quantity, client, true);
+
+    // Update issue to active
+    await client.query(
+      `UPDATE issues 
+       SET status = 'active', 
+           issued_at = NOW(), 
+           issued_by = $1,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [issuedBy, issueId]
+    );
+
+    // Log audit entry
+    await logIssueAction('issue', issueId, issuedBy, {
+      previous_status: 'requested',
+      new_status: 'active',
+    }, client);
+
+    return issuesRepository.getIssueById(issueId);
   });
-
-  return issuesRepository.getIssueById(updated.id);
 }
 
-export async function dropIssue(issueId, dropBoxId) {
-  const issue = await issuesRepository.getIssueById(issueId);
-  if (!issue) {
-    throw new AppError(404, 'NOT_FOUND', 'Issue not found');
-  }
+export async function dropIssue(issueId, dropBoxId, droppedBy) {
+  return withTransaction(async (client) => {
+    // Lock and get issue
+    const { rows: issueRows } = await client.query(
+      'SELECT * FROM issues WHERE id = $1 FOR UPDATE',
+      [issueId]
+    );
 
-  if (issue.status !== 'active') {
-    throw new AppError(409, 'INVALID_STATE_TRANSITION', 
-      `Cannot drop from status ${issue.status}`);
-  }
+    if (!issueRows[0]) {
+      throw new AppError('NOT_FOUND', 'Issue not found', 404);
+    }
 
-  // Verify drop box exists
-  const { rows } = await pool.query(
-    'SELECT id, is_active FROM drop_boxes WHERE id = $1',
-    [dropBoxId]
-  );
+    const issue = issueRows[0];
 
-  if (!rows[0]) {
-    throw new AppError(404, 'NOT_FOUND', 'Drop box not found');
-  }
+    if (issue.status !== 'active') {
+      throw new AppError('INVALID_STATE_TRANSITION', 
+        `Cannot drop from status ${issue.status}. Must be in active state.`, 409);
+    }
 
-  if (!rows[0].is_active) {
-    throw new AppError(409, 'DROP_BOX_INACTIVE', 'Drop box is not active');
-  }
+    // Verify drop box exists and is active
+    const { rows: boxRows } = await client.query(
+      'SELECT id, name, is_active FROM drop_boxes WHERE id = $1',
+      [dropBoxId]
+    );
 
-  const updated = await issuesRepository.updateIssue(issueId, {
-    status: 'dropped',
-    dropped_at: new Date(),
-    drop_box_id: dropBoxId,
+    if (!boxRows[0]) {
+      throw new AppError('NOT_FOUND', 'Drop box not found', 404);
+    }
+
+    if (!boxRows[0].is_active) {
+      throw new AppError('DROP_BOX_INACTIVE', 'Drop box is not active', 409);
+    }
+
+    // Update issue to dropped
+    await client.query(
+      `UPDATE issues 
+       SET status = 'dropped', 
+           dropped_at = NOW(), 
+           drop_box_id = $1,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [dropBoxId, issueId]
+    );
+
+    // Log audit entry
+    await logIssueAction('drop', issueId, droppedBy || issue.borrower_id, {
+      previous_status: 'active',
+      new_status: 'dropped',
+      drop_box_id: dropBoxId,
+      drop_box_name: boxRows[0].name,
+    }, client);
+
+    return issuesRepository.getIssueById(issueId);
   });
-
-  return issuesRepository.getIssueById(updated.id);
 }
 
 export async function receiveIssue(issueId, receiveData, receivedBy) {
-  const issue = await issuesRepository.getIssueById(issueId);
-  if (!issue) {
-    throw new AppError(404, 'NOT_FOUND', 'Issue not found');
-  }
+  return withTransaction(async (client) => {
+    // Lock and get issue
+    const { rows: issueRows } = await client.query(
+      'SELECT * FROM issues WHERE id = $1 FOR UPDATE',
+      [issueId]
+    );
 
-  if (issue.status !== 'dropped') {
-    throw new AppError(409, 'INVALID_STATE_TRANSITION', 
-      `Cannot receive from status ${issue.status}. Item must be dropped first.`);
-  }
+    if (!issueRows[0]) {
+      throw new AppError('NOT_FOUND', 'Issue not found', 404);
+    }
 
-  const updated = await issuesRepository.updateIssue(issueId, {
-    status: 'returned',
-    returned_at: new Date(),
-    received_by: receivedBy,
-    return_condition: receiveData.return_condition,
-    remarks: receiveData.remarks || null,
+    const issue = issueRows[0];
+
+    if (issue.status !== 'dropped') {
+      throw new AppError('INVALID_STATE_TRANSITION', 
+        `Cannot receive from status ${issue.status}. Item must be dropped first.`, 409);
+    }
+
+    // Update issue to returned
+    await client.query(
+      `UPDATE issues 
+       SET status = 'returned', 
+           returned_at = NOW(), 
+           received_by = $1,
+           return_condition = $2,
+           remarks = $3,
+           updated_at = NOW()
+       WHERE id = $4`,
+      [receivedBy, receiveData.return_condition, receiveData.remarks || null, issueId]
+    );
+
+    // Log audit entry
+    await logIssueAction('receive', issueId, receivedBy, {
+      previous_status: 'dropped',
+      new_status: 'returned',
+      return_condition: receiveData.return_condition,
+      remarks: receiveData.remarks,
+    }, client);
+
+    return issuesRepository.getIssueById(issueId);
   });
-
-  return issuesRepository.getIssueById(updated.id);
 }
 
-export async function cancelIssue(issueId, cancellationReason) {
-  const issue = await issuesRepository.getIssueById(issueId);
-  if (!issue) {
-    throw new AppError(404, 'NOT_FOUND', 'Issue not found');
-  }
+export async function cancelIssue(issueId, cancellationReason, cancelledBy) {
+  return withTransaction(async (client) => {
+    // Lock and get issue
+    const { rows: issueRows } = await client.query(
+      'SELECT * FROM issues WHERE id = $1 FOR UPDATE',
+      [issueId]
+    );
 
-  if (issue.status !== 'requested') {
-    throw new AppError(409, 'INVALID_STATE_TRANSITION', 
-      'Can only cancel issues in requested state');
-  }
+    if (!issueRows[0]) {
+      throw new AppError('NOT_FOUND', 'Issue not found', 404);
+    }
 
-  const updated = await issuesRepository.updateIssue(issueId, {
-    status: 'cancelled',
-    cancellation_reason: cancellationReason,
+    const issue = issueRows[0];
+
+    if (issue.status !== 'requested') {
+      throw new AppError('INVALID_STATE_TRANSITION', 
+        'Can only cancel issues in requested state', 409);
+    }
+
+    // Update issue to cancelled
+    await client.query(
+      `UPDATE issues 
+       SET status = 'cancelled', 
+           cancellation_reason = $1,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [cancellationReason, issueId]
+    );
+
+    // Log audit entry
+    await logIssueAction('cancel', issueId, cancelledBy, {
+      previous_status: 'requested',
+      new_status: 'cancelled',
+      cancellation_reason: cancellationReason,
+    }, client);
+
+    return issuesRepository.getIssueById(issueId);
   });
-
-  return issuesRepository.getIssueById(updated.id);
 }
 
 export async function renewIssue(issueId, renewalData, requestedBy) {
-  const issue = await issuesRepository.getIssueById(issueId);
-  if (!issue) {
-    throw new AppError(404, 'NOT_FOUND', 'Issue not found');
-  }
+  return withTransaction(async (client) => {
+    // Lock and get issue with category info
+    const { rows: issueRows } = await client.query(
+      `SELECT i.*, c.max_renewals, c.default_loan_days
+       FROM issues i
+       JOIN assets a ON i.asset_id = a.id
+       JOIN categories c ON a.category_id = c.id
+       WHERE i.id = $1
+       FOR UPDATE OF i`,
+      [issueId]
+    );
 
-  if (issue.status !== 'active') {
-    throw new AppError(409, 'INVALID_STATE', 
-      'Can only renew active issues');
-  }
+    if (!issueRows[0]) {
+      throw new AppError('NOT_FOUND', 'Issue not found', 404);
+    }
 
-  // Check max renewals
-  if (issue.renewal_count >= issue.max_renewals) {
-    throw new AppError(409, 'MAX_RENEWALS_REACHED', 
-      `Maximum ${issue.max_renewals} renewals allowed`);
-  }
+    const issue = issueRows[0];
 
-  // Calculate new due date (add same loan days)
-  const currentDue = new Date(issue.due_at);
-  const newDueDate = new Date(currentDue);
-  newDueDate.setDate(newDueDate.getDate() + issue.default_loan_days);
+    if (issue.status !== 'active') {
+      throw new AppError('INVALID_STATE', 
+        'Can only renew active issues', 409);
+    }
 
-  // Create renewal record
-  const { rows } = await pool.query(
-    `INSERT INTO loan_renewals 
-     (issue_id, requested_by, previous_due_at, new_due_at, status, reason, approved_by, decision_at)
-     VALUES ($1, $2, $3, $4, 'approved', $5, $6, NOW())
-     RETURNING *`,
-    [issueId, requestedBy, issue.due_at, newDueDate, renewalData.reason || null, renewalData.approved_by || requestedBy]
-  );
+    // Check max renewals
+    if (issue.renewal_count >= issue.max_renewals) {
+      throw new AppError('MAX_RENEWALS_REACHED', 
+        `Maximum ${issue.max_renewals} renewals allowed`, 409);
+    }
 
-  // Update issue
-  const updated = await issuesRepository.updateIssue(issueId, {
-    due_at: newDueDate,
-    renewal_count: issue.renewal_count + 1,
+    // Calculate new due date
+    const currentDue = new Date(issue.due_at);
+    const newDueDate = new Date(currentDue);
+    newDueDate.setDate(newDueDate.getDate() + issue.default_loan_days);
+
+    const approvedBy = renewalData.approved_by || requestedBy;
+
+    // Create renewal record
+    const { rows: renewalRows } = await client.query(
+      `INSERT INTO loan_renewals 
+       (issue_id, requested_by, approved_by, previous_due_at, new_due_at, 
+        status, reason, decision_at)
+       VALUES ($1, $2, $3, $4, $5, 'approved', $6, NOW())
+       RETURNING *`,
+      [issueId, requestedBy, approvedBy, issue.due_at, newDueDate, renewalData.reason || null]
+    );
+
+    // Update issue
+    await client.query(
+      `UPDATE issues 
+       SET due_at = $1, 
+           renewal_count = renewal_count + 1,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [newDueDate, issueId]
+    );
+
+    // Log audit entry
+    await logIssueAction('renew', issueId, requestedBy, {
+      previous_due_at: issue.due_at,
+      new_due_at: newDueDate,
+      renewal_count: issue.renewal_count + 1,
+      approved_by: approvedBy,
+    }, client);
+
+    return {
+      issue: await issuesRepository.getIssueById(issueId),
+      renewal: renewalRows[0],
+    };
   });
-
-  return {
-    issue: await issuesRepository.getIssueById(updated.id),
-    renewal: rows[0],
-  };
 }
 
 export async function getOverdueIssues() {
@@ -270,4 +434,52 @@ export async function getOverdueIssues() {
 
 export async function getDroppedIssues() {
   return issuesRepository.getDroppedIssues();
+}
+
+/**
+ * Direct return (active → returned) without drop box
+ * For cases where borrower returns directly to staff
+ */
+export async function directReturn(issueId, receiveData, receivedBy) {
+  return withTransaction(async (client) => {
+    // Lock and get issue
+    const { rows: issueRows } = await client.query(
+      'SELECT * FROM issues WHERE id = $1 FOR UPDATE',
+      [issueId]
+    );
+
+    if (!issueRows[0]) {
+      throw new AppError('NOT_FOUND', 'Issue not found', 404);
+    }
+
+    const issue = issueRows[0];
+
+    if (issue.status !== 'active') {
+      throw new AppError('INVALID_STATE_TRANSITION', 
+        `Cannot return from status ${issue.status}. Must be in active state.`, 409);
+    }
+
+    // Update issue to returned (skip dropped state)
+    await client.query(
+      `UPDATE issues 
+       SET status = 'returned', 
+           returned_at = NOW(), 
+           received_by = $1,
+           return_condition = $2,
+           remarks = $3,
+           updated_at = NOW()
+       WHERE id = $4`,
+      [receivedBy, receiveData.return_condition, receiveData.remarks || null, issueId]
+    );
+
+    // Log audit entry
+    await logIssueAction('direct_return', issueId, receivedBy, {
+      previous_status: 'active',
+      new_status: 'returned',
+      return_condition: receiveData.return_condition,
+      remarks: receiveData.remarks,
+    }, client);
+
+    return issuesRepository.getIssueById(issueId);
+  });
 }

@@ -21,6 +21,7 @@ router.delete('/:id', validate(schemas.issueIdSchema, 'params'), controller.dele
 router.post('/:id/issue', validate(schemas.issueIdSchema, 'params'), validate(schemas.issueAssetSchema, 'body'), controller.issueAsset);
 router.post('/:id/drop', validate(schemas.issueIdSchema, 'params'), validate(schemas.dropIssueSchema, 'body'), controller.dropIssue);
 router.post('/:id/receive', validate(schemas.issueIdSchema, 'params'), validate(schemas.receiveIssueSchema, 'body'), controller.receiveIssue);
+router.post('/:id/return', validate(schemas.issueIdSchema, 'params'), validate(schemas.receiveIssueSchema, 'body'), controller.directReturnIssue);
 router.post('/:id/cancel', validate(schemas.issueIdSchema, 'params'), validate(schemas.cancelIssueSchema, 'body'), controller.cancelIssue);
 router.post('/:id/renew', validate(schemas.issueIdSchema, 'params'), validate(schemas.renewIssueSchema, 'body'), controller.renewIssue);
 
