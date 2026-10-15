@@ -48,7 +48,7 @@ export interface AuthTokens {
 }
 
 export interface LoginRequest {
-  username: string;
+  email: string;
   password: string;
 }
 

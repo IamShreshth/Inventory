@@ -73,12 +73,12 @@ export const LoginPage = () => {
             )}
 
             <Input
-              label="Username"
-              type="text"
-              autoComplete="username"
-              error={errors.username?.message}
+              label="Email"
+              type="email"
+              autoComplete="email"
+              error={errors.email?.message}
               required
-              {...register('username')}
+              {...register('email')}
             />
 
             <Input

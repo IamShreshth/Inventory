@@ -10,9 +10,11 @@ import { apiClient } from '@/lib/api-client';
 import type { ApiErrorResponse } from '@/types/api';
 
 const signupSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters').max(50),
-  email: z.string().email('Invalid email address'),
   full_name: z.string().min(2, 'Full name must be at least 2 characters').max(100),
+  institute_email: z.string().email('Invalid email address'),
+  roll_no: z.string().min(3, 'Roll number must be at least 3 characters').max(50),
+  phone: z.string().optional(),
+  programme: z.string().optional(),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -112,21 +114,36 @@ export const SignupPage = () => {
             />
 
             <Input
-              label="Username"
-              type="text"
-              autoComplete="username"
-              error={errors.username?.message}
+              label="Institute Email"
+              type="email"
+              autoComplete="email"
+              error={errors.institute_email?.message}
               required
-              {...register('username')}
+              {...register('institute_email')}
             />
 
             <Input
-              label="Email"
-              type="email"
-              autoComplete="email"
-              error={errors.email?.message}
+              label="Roll Number"
+              type="text"
+              autoComplete="username"
+              error={errors.roll_no?.message}
               required
-              {...register('email')}
+              {...register('roll_no')}
+            />
+
+            <Input
+              label="Phone (Optional)"
+              type="tel"
+              autoComplete="tel"
+              error={errors.phone?.message}
+              {...register('phone')}
+            />
+
+            <Input
+              label="Programme (Optional)"
+              type="text"
+              error={errors.programme?.message}
+              {...register('programme')}
             />
 
             <Input
