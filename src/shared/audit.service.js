@@ -1,5 +1,16 @@
 import { pool } from '../db/pool.js';
 
+export async function logIssueAction(action, issueId, actorId, data = {}, client = pool) {
+  const { rows } = await client.query(
+    `INSERT INTO audit_log (table_name, record_id, action, changed_by, new_data)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING *`,
+    ['issues', issueId, action, actorId || null, JSON.stringify(redactSensitiveData(data))]
+  );
+
+  return rows[0];
+}
+
 /**
  * Create an audit log entry
  * @param {Object} data - Audit log data

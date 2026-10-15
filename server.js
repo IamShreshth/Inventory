@@ -15,6 +15,7 @@ import borrowerBlocksRouter from './src/modules/borrower-blocks/borrower-blocks.
 import assetsRouter from './src/modules/assets/assets.routes.js';
 import auditLogRouter from './src/modules/audit-log/audit-log.routes.js';
 import reportsRouter from './src/modules/reports/reports.routes.js';
+import alertsRouter from './src/modules/alerts/alerts.routes.js';
 import { AppError } from './src/shared/app-error.js';
 
 const app = express();
