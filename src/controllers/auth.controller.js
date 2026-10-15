@@ -25,7 +25,12 @@ export const login = async (req, res) => {
       return res.status(401).json(formatError('UNAUTHORIZED', 'Invalid credentials'));
     }
 
-    const isMatch = await argon2.verify(user.password_hash, password);
+    let isMatch = false;
+    try {
+      isMatch = await argon2.verify(user.password_hash, password);
+    } catch {
+      isMatch = false;
+    }
     if (!isMatch) {
       return res.status(401).json(formatError('UNAUTHORIZED', 'Invalid credentials'));
     }
@@ -302,6 +307,15 @@ export const register = async (req, res) => {
 
     if (!full_name || !institute_email || !roll_no || !password) {
       return res.status(422).json(formatError('VALIDATION_ERROR', 'Full name, email, roll number, and password are required'));
+    }
+
+    if (full_name.length > 255) {
+      return res.status(422).json(formatError('VALIDATION_ERROR', 'Full name exceeds maximum length of 255 characters'));
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(institute_email)) {
+      return res.status(422).json(formatError('VALIDATION_ERROR', 'Invalid email format'));
     }
 
     if (password.length < 8) {
