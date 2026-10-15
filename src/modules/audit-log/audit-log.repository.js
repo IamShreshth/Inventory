@@ -36,13 +36,13 @@ export async function list(filters = {}) {
   // Date range filters
   if (filters.from_date) {
     paramCount++;
-    conditions.push(`changed_at >= $${paramCount}::date`);
+    conditions.push(`al.created_at >= $${paramCount}::date`);
     values.push(filters.from_date);
   }
 
   if (filters.to_date) {
     paramCount++;
-    conditions.push(`changed_at < ($${paramCount}::date + interval '1 day')`);
+    conditions.push(`al.created_at < ($${paramCount}::date + interval '1 day')`);
     values.push(filters.to_date);
   }
 
@@ -50,12 +50,13 @@ export async function list(filters = {}) {
 
   const { rows } = await pool.query(
     `SELECT al.*,
+            al.created_at as changed_at,
             u.full_name as changed_by_name,
             COUNT(*) OVER() as total_count
      FROM audit_log al
      LEFT JOIN users u ON al.changed_by = u.id
      ${whereClause}
-     ORDER BY al.changed_at DESC
+     ORDER BY al.created_at DESC
      LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`,
     [...values, filters.limit, filters.offset]
   );
@@ -81,11 +82,12 @@ export async function getById(id) {
 export async function getByEntity(entityType, entityId) {
   const { rows } = await pool.query(
     `SELECT al.*,
+            al.created_at as changed_at,
             u.full_name as changed_by_name
      FROM audit_log al
      LEFT JOIN users u ON al.changed_by = u.id
      WHERE al.table_name = $1 AND al.record_id = $2
-     ORDER BY al.changed_at DESC`,
+     ORDER BY al.created_at DESC`,
     [entityType, entityId]
   );
   return rows;

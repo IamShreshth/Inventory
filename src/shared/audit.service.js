@@ -133,3 +133,17 @@ export function extractRequestMetadata(req) {
     user_agent: req.get('user-agent') || null,
   };
 }
+
+/**
+ * Generic audit logger used across modules
+ * @param {Object} data - Audit log data
+ * @param {Object} [client] - Optional PostgreSQL client for transactions
+ * @returns {Promise<Object>} Created audit log entry
+ */
+export async function logAudit(data, client = null) {
+  if (client) {
+    return createAuditLogInTransaction(client, data);
+  }
+  return createAuditLog(data);
+}
+
