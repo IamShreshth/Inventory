@@ -1,0 +1,30 @@
+import { Router } from 'express';
+import { validate } from '../../middleware/validate.js';
+import { 
+  orgIdSchema,
+  assetInventoryQuerySchema,
+  borrowingHistoryQuerySchema,
+  overdueLoansQuerySchema,
+  maintenanceCostsQuerySchema,
+  disposalSummaryQuerySchema,
+  verificationProgressQuerySchema,
+  assetUtilizationQuerySchema
+} from './reports.schemas.js';
+import * as controller from './reports.controller.js';
+
+const router = Router();
+
+// Dashboard routes
+router.get('/dashboard/summary', controller.getDashboardSummary);
+router.get('/dashboard/org/:orgId', validate(orgIdSchema, 'params'), controller.getOrgDashboard);
+
+// Report routes
+router.get('/reports/asset-inventory', validate(assetInventoryQuerySchema, 'query'), controller.getAssetInventoryReport);
+router.get('/reports/borrowing-history', validate(borrowingHistoryQuerySchema, 'query'), controller.getBorrowingHistoryReport);
+router.get('/reports/overdue-loans', validate(overdueLoansQuerySchema, 'query'), controller.getOverdueLoansReport);
+router.get('/reports/maintenance-costs', validate(maintenanceCostsQuerySchema, 'query'), controller.getMaintenanceCostsReport);
+router.get('/reports/disposal-summary', validate(disposalSummaryQuerySchema, 'query'), controller.getDisposalSummaryReport);
+router.get('/reports/verification-progress', validate(verificationProgressQuerySchema, 'query'), controller.getVerificationProgressReport);
+router.get('/reports/asset-utilization', validate(assetUtilizationQuerySchema, 'query'), controller.getAssetUtilizationReport);
+
+export default router;
