@@ -6,10 +6,12 @@ import { createTestUser, createTestCategory, createTestAsset, cleanupTestData } 
 import auditLogRouter from '../../src/modules/audit-log/audit-log.routes.js';
 import authenticate from '../../src/middlewares/auth.middleware.js';
 import { createAuditLog } from '../../src/shared/audit.service.js';
+import errorHandler from '../../src/middleware/error-handler.js';
 
 const app = express();
 app.use(express.json());
 app.use('/api/v1/audit-log', authenticate, auditLogRouter);
+app.use(errorHandler);
 
 describe('Audit Log Tests', () => {
   let testUser;
@@ -64,8 +66,8 @@ describe('Audit Log Tests', () => {
 
       const auditEntry = await createAuditLog(auditData);
 
-      const oldData = JSON.parse(auditEntry.old_data);
-      const newData = JSON.parse(auditEntry.new_data);
+      const oldData = typeof auditEntry.old_data === 'string' ? JSON.parse(auditEntry.old_data) : auditEntry.old_data;
+      const newData = typeof auditEntry.new_data === 'string' ? JSON.parse(auditEntry.new_data) : auditEntry.new_data;
 
       expect(oldData.password_hash).toBe('[REDACTED]');
       expect(newData.password_hash).toBe('[REDACTED]');

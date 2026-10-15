@@ -5,11 +5,13 @@ import { pool } from '../../src/db/pool.js';
 import { createTestUser, createTestCategory, createTestAsset, cleanupTestData } from '../helpers/fixtures.js';
 import assetsRouter from '../../src/modules/assets/assets.routes.js';
 import authenticate from '../../src/middlewares/auth.middleware.js';
+import errorHandler from '../../src/middleware/error-handler.js';
 
 // Create test app
 const app = express();
 app.use(express.json());
 app.use('/api/v1/assets', authenticate, assetsRouter);
+app.use(errorHandler);
 
 describe('Assets Integration Tests', () => {
   let testUser;

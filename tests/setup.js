@@ -1,8 +1,10 @@
 import 'dotenv/config';
+import { beforeAll, afterAll } from 'vitest';
 import { pool } from '../src/db/pool.js';
 
 // Set test environment
 process.env.NODE_ENV = 'test';
+process.env.PASETO_V3_LOCAL_KEY_BASE64 ??= Buffer.alloc(32).toString('base64');
 
 // Global test setup
 export async function setup() {

@@ -1,4 +1,4 @@
-import { pool } from '../src/db/pool.js';
+import { pool } from '../../src/db/pool.js';
 
 /**
  * Create a test user
@@ -130,12 +130,25 @@ export async function createTestAsset(assetData = {}) {
  * Clean up test data
  */
 export async function cleanupTestData() {
-  await pool.query('DELETE FROM audit_log WHERE changed_by IS NULL OR changed_by IN (SELECT id FROM users WHERE institute_email LIKE \'test%@institute.edu\')');
-  await pool.query('DELETE FROM qr_tokens WHERE entity_id IN (SELECT id FROM assets WHERE name LIKE \'Test Asset%\')');
-  await pool.query('DELETE FROM assets WHERE name LIKE \'Test Asset%\'');
+  await pool.query('DELETE FROM loan_renewals');
+  await pool.query('DELETE FROM issues WHERE borrower_id IN (SELECT id FROM users WHERE institute_email LIKE \'test%\' OR institute_email LIKE \'security%\' OR institute_email LIKE \'pwtest%\') OR asset_id IN (SELECT id FROM assets WHERE name LIKE \'Test Asset%\')');
+  await pool.query('DELETE FROM transfers WHERE asset_id IN (SELECT id FROM assets WHERE name LIKE \'Test Asset%\')');
+  await pool.query('DELETE FROM maintenance_records WHERE asset_id IN (SELECT id FROM assets WHERE name LIKE \'Test Asset%\')');
+  await pool.query('DELETE FROM disposals WHERE asset_id IN (SELECT id FROM assets WHERE name LIKE \'Test Asset%\')');
+  await pool.query('DELETE FROM verifications WHERE asset_id IN (SELECT id FROM assets WHERE name LIKE \'Test Asset%\')');
+  await pool.query('DELETE FROM verification_cycles WHERE name LIKE \'Test%\'');
+  await pool.query('DELETE FROM attachments WHERE filename LIKE \'test%\'');
+  await pool.query('DELETE FROM alerts WHERE message LIKE \'Test%\' OR entity_id IN (SELECT id FROM assets WHERE name LIKE \'Test Asset%\')');
+  await pool.query('DELETE FROM audit_log WHERE changed_by IS NULL OR changed_by IN (SELECT id FROM users WHERE institute_email LIKE \'test%\' OR institute_email LIKE \'security%\' OR institute_email LIKE \'pwtest%\') OR (table_name = \'assets\' AND record_id IN (SELECT id FROM assets WHERE name LIKE \'Test Asset%\'))');
+  await pool.query('DELETE FROM qr_tokens WHERE entity_id IN (SELECT id FROM assets WHERE name LIKE \'Test%\' OR category_id IN (SELECT id FROM categories WHERE name LIKE \'Test Category%\'))');
+  await pool.query('DELETE FROM assets WHERE name LIKE \'Test%\' OR category_id IN (SELECT id FROM categories WHERE name LIKE \'Test Category%\')');
   await pool.query('DELETE FROM categories WHERE name LIKE \'Test Category%\'');
   await pool.query('DELETE FROM org_units WHERE name LIKE \'Test Org%\'');
-  await pool.query('DELETE FROM users WHERE institute_email LIKE \'test%@institute.edu\'');
+  await pool.query('DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE institute_email LIKE \'test%\' OR institute_email LIKE \'security%\' OR institute_email LIKE \'pwtest%\')');
+  await pool.query('DELETE FROM borrower_blocks WHERE user_id IN (SELECT id FROM users WHERE institute_email LIKE \'test%\' OR institute_email LIKE \'security%\' OR institute_email LIKE \'pwtest%\')');
+  await pool.query('DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE institute_email LIKE \'test%\' OR institute_email LIKE \'security%\' OR institute_email LIKE \'pwtest%\')');
+  await pool.query('DELETE FROM password_reset_tokens WHERE user_id IN (SELECT id FROM users WHERE institute_email LIKE \'test%\' OR institute_email LIKE \'security%\' OR institute_email LIKE \'pwtest%\')');
+  await pool.query('DELETE FROM users WHERE institute_email LIKE \'test%\' OR institute_email LIKE \'security%\' OR institute_email LIKE \'pwtest%\'');
 }
 
 /**

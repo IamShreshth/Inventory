@@ -181,8 +181,8 @@ describe('Security and Authentication Tests', () => {
         .send({ email: null, password: null });
 
       expect(response.body).not.toHaveProperty('stack');
-      expect(response.body.error).not.toMatch(/node_modules/);
-      expect(response.body.error).not.toMatch(/at /);
+      expect(JSON.stringify(response.body.error)).not.toMatch(/node_modules/);
+      expect(JSON.stringify(response.body.error)).not.toMatch(/at /);
     });
 
     it('should include proper error codes', async () => {
