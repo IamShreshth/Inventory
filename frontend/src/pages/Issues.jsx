@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { assetsApi, issuesApi } from '../api/client'
+import { assetsApi, dropBoxesApi, issuesApi } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
@@ -9,6 +9,7 @@ export default function Issues() {
   const [items, setItems] = useState([])
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 })
   const [assets, setAssets] = useState([])
+  const [dropBoxes, setDropBoxes] = useState([])
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -18,6 +19,10 @@ export default function Issues() {
   const [saving, setSaving] = useState(false)
   const [returnModal, setReturnModal] = useState(null)
   const [returnCondition, setReturnCondition] = useState('good')
+  const [receiveModal, setReceiveModal] = useState(null)
+  const [receiveCondition, setReceiveCondition] = useState('good')
+  const [dropModal, setDropModal] = useState(null)
+  const [dropBoxId, setDropBoxId] = useState('')
   const [cancelModal, setCancelModal] = useState(null)
   const [cancelReason, setCancelReason] = useState('')
 
@@ -48,6 +53,10 @@ export default function Issues() {
       .list({ limit: 100, status: 'available', is_issuable: true })
       .then((res) => setAssets(res.data || []))
       .catch(() => setAssets([]))
+    dropBoxesApi
+      .list({ limit: 100 })
+      .then((res) => setDropBoxes(res.data || []))
+      .catch(() => setDropBoxes([]))
   }, [])
 
   async function handleCreate(e) {
@@ -110,6 +119,31 @@ export default function Issues() {
   async function handleRenew(id) {
     try {
       await issuesApi.renew(id, { reason: 'Extension requested from UI' })
+      await load()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleDrop(e) {
+    e.preventDefault()
+    try {
+      await issuesApi.drop(dropModal, { drop_box_id: dropBoxId })
+      setDropModal(null)
+      setDropBoxId('')
+      await load()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleReceive(e) {
+    e.preventDefault()
+    try {
+      await issuesApi.receive(receiveModal, {
+        return_condition: receiveCondition,
+      })
+      setReceiveModal(null)
       await load()
     } catch (err) {
       setError(err.message)
@@ -206,7 +240,7 @@ export default function Issues() {
                             </button>
                           </>
                         ) : null}
-                        {issue.status === 'active' || issue.status === 'dropped' ? (
+                        {issue.status === 'active' ? (
                           <>
                             <button
                               type="button"
@@ -221,11 +255,33 @@ export default function Issues() {
                             <button
                               type="button"
                               className="btn btn-ghost btn-sm"
+                              onClick={() => {
+                                setDropBoxId('')
+                                setDropModal(issue.id)
+                              }}
+                            >
+                              Drop
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
                               onClick={() => handleRenew(issue.id)}
                             >
                               Renew
                             </button>
                           </>
+                        ) : null}
+                        {issue.status === 'dropped' ? (
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => {
+                              setReceiveCondition('good')
+                              setReceiveModal(issue.id)
+                            }}
+                          >
+                            Receive
+                          </button>
                         ) : null}
                       </div>
                     </td>
@@ -353,6 +409,80 @@ export default function Issues() {
                 onChange={(e) => setCancelReason(e.target.value)}
                 required
               />
+            </div>
+          </form>
+        </Modal>
+      ) : null}
+
+      {dropModal ? (
+        <Modal
+          title="Drop at box"
+          onClose={() => setDropModal(null)}
+          footer={
+            <>
+              <button type="button" className="btn btn-ghost" onClick={() => setDropModal(null)}>
+                Cancel
+              </button>
+              <button type="submit" form="drop-issue" className="btn btn-primary">
+                Confirm drop
+              </button>
+            </>
+          }
+        >
+          <form id="drop-issue" className="form" onSubmit={handleDrop}>
+            <div className="field">
+              <label htmlFor="drop_box_id">Drop box</label>
+              <select
+                id="drop_box_id"
+                value={dropBoxId}
+                onChange={(e) => setDropBoxId(e.target.value)}
+                required
+              >
+                <option value="">Select drop box</option>
+                {dropBoxes.map((box) => (
+                  <option key={box.id} value={box.id}>
+                    {box.name}
+                  </option>
+                ))}
+              </select>
+              {dropBoxes.length === 0 ? (
+                <span className="muted">Create a drop box first.</span>
+              ) : null}
+            </div>
+          </form>
+        </Modal>
+      ) : null}
+
+      {receiveModal ? (
+        <Modal
+          title="Receive from drop box"
+          onClose={() => setReceiveModal(null)}
+          footer={
+            <>
+              <button type="button" className="btn btn-ghost" onClick={() => setReceiveModal(null)}>
+                Cancel
+              </button>
+              <button type="submit" form="receive-issue" className="btn btn-primary">
+                Confirm receive
+              </button>
+            </>
+          }
+        >
+          <form id="receive-issue" className="form" onSubmit={handleReceive}>
+            <div className="field">
+              <label htmlFor="receive_condition">Return condition</label>
+              <select
+                id="receive_condition"
+                value={receiveCondition}
+                onChange={(e) => setReceiveCondition(e.target.value)}
+                required
+              >
+                <option value="excellent">Excellent</option>
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="poor">Poor</option>
+                <option value="damaged">Damaged</option>
+              </select>
             </div>
           </form>
         </Modal>

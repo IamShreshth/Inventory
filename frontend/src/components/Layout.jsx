@@ -5,8 +5,16 @@ const links = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/assets', label: 'Assets' },
   { to: '/issues', label: 'Borrowing' },
+  { to: '/transfers', label: 'Transfers' },
   { to: '/alerts', label: 'Alerts' },
   { to: '/catalog', label: 'Catalog' },
+  { to: '/vendors', label: 'Vendors' },
+  { to: '/purchases', label: 'Purchases' },
+  { to: '/drop-boxes', label: 'Drop boxes' },
+  { to: '/users', label: 'Users' },
+  { to: '/blocks', label: 'Blocks' },
+  { to: '/reports', label: 'Reports' },
+  { to: '/audit-log', label: 'Audit log' },
 ]
 
 export default function Layout() {

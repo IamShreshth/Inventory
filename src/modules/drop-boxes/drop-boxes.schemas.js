@@ -26,3 +26,11 @@ export const dropBoxIdSchema = z.object({
 export const locationIdSchema = z.object({
   id: z.string().uuid(),
 });
+
+export const listDropBoxesSchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  location_id: z.string().uuid().optional(),
+  org_unit_id: z.string().uuid().optional(),
+  is_active: z.enum(['true', 'false']).optional(),
+});

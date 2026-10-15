@@ -24,4 +24,6 @@ export const env = Object.freeze({
   port,
   databaseUrl: process.env.DATABASE_URL,
   dbPoolMax,
+  logLevel: process.env.LOG_LEVEL ?? (process.env.NODE_ENV === 'test' ? 'silent' : 'info'),
+  logFormat: process.env.LOG_FORMAT ?? (process.env.NODE_ENV === 'production' ? 'json' : 'pretty'),
 });

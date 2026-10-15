@@ -61,6 +61,8 @@ export default function Login() {
         </form>
         <p className="auth-switch">
           No account? <Link to="/register">Register</Link>
+          {' · '}
+          <Link to="/forgot-password">Forgot password?</Link>
         </p>
       </div>
     </div>

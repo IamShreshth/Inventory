@@ -1,20 +1,20 @@
 // src/modules/alerts/alert-jobs.js
 /**
  * Alert generation jobs
- * 
+ *
  * This module provides functions to be called by cron jobs or background workers
  * to automatically generate and manage system alerts.
- * 
+ *
  * Usage with node-cron (example):
- * 
+ *
  * import cron from 'node-cron';
  * import * as alertJobs from './modules/alerts/alert-jobs.js';
- * 
+ *
  * // Run every hour
  * cron.schedule('0 * * * *', async () => {
  *   await alertJobs.runAlertGeneration();
  * });
- * 
+ *
  * // Run cleanup daily at 2 AM
  * cron.schedule('0 2 * * *', async () => {
  *   await alertJobs.runAlertCleanup();
@@ -23,27 +23,33 @@
 
 import * as alertsService from './alerts.service.js';
 import * as alertsRepository from './alerts.repository.js';
+import logger from '../../utils/logger.js';
+
+const jobLog = logger.child({ module: 'alert-jobs' });
 
 /**
  * Main alert generation job
  * Generates all types of system alerts
  */
 export async function runAlertGeneration() {
-  console.log('[Alert Job] Starting alert generation...');
-  
+  jobLog.info('Starting alert generation');
+
   try {
     const result = await alertsService.generateAllSystemAlerts();
-    
-    console.log('[Alert Job] Alert generation completed:', {
-      total: result.total,
-      low_stock: result.by_type.low_stock,
-      overdue_loans: result.by_type.overdue_loans,
-      warranty_expiry: result.by_type.warranty_expiry,
-    });
-    
+
+    jobLog.info(
+      {
+        total: result.total,
+        low_stock: result.by_type.low_stock,
+        overdue_loans: result.by_type.overdue_loans,
+        warranty_expiry: result.by_type.warranty_expiry,
+      },
+      'Alert generation completed'
+    );
+
     return result;
   } catch (error) {
-    console.error('[Alert Job] Error generating alerts:', error);
+    jobLog.error({ err: error }, 'Error generating alerts');
     throw error;
   }
 }
@@ -53,18 +59,16 @@ export async function runAlertGeneration() {
  * Automatically resolves alerts where conditions have been fixed
  */
 export async function runAutoResolve() {
-  console.log('[Alert Job] Starting auto-resolve...');
-  
+  jobLog.info('Starting auto-resolve');
+
   try {
     const result = await alertsService.autoResolveAlerts();
-    
-    console.log('[Alert Job] Auto-resolve completed:', {
-      resolved: result.resolved,
-    });
-    
+
+    jobLog.info({ resolved: result.resolved }, 'Auto-resolve completed');
+
     return result;
   } catch (error) {
-    console.error('[Alert Job] Error auto-resolving alerts:', error);
+    jobLog.error({ err: error }, 'Error auto-resolving alerts');
     throw error;
   }
 }
@@ -74,18 +78,16 @@ export async function runAutoResolve() {
  * Deletes old resolved/dismissed alerts to keep the table manageable
  */
 export async function runAlertCleanup(daysOld = 90) {
-  console.log(`[Alert Job] Starting cleanup of alerts older than ${daysOld} days...`);
-  
+  jobLog.info({ daysOld }, 'Starting alert cleanup');
+
   try {
     const deleted = await alertsRepository.deleteOldAlerts(daysOld);
-    
-    console.log('[Alert Job] Cleanup completed:', {
-      deleted,
-    });
-    
+
+    jobLog.info({ deleted }, 'Alert cleanup completed');
+
     return { deleted };
   } catch (error) {
-    console.error('[Alert Job] Error cleaning up alerts:', error);
+    jobLog.error({ err: error }, 'Error cleaning up alerts');
     throw error;
   }
 }
@@ -95,8 +97,8 @@ export async function runAlertCleanup(daysOld = 90) {
  * Recommended for scheduled execution
  */
 export async function runAllAlertJobs(cleanupDays = 90) {
-  console.log('[Alert Job] Starting all alert jobs...');
-  
+  jobLog.info('Starting all alert jobs');
+
   const startTime = Date.now();
   const results = {
     generation: null,
@@ -104,35 +106,32 @@ export async function runAllAlertJobs(cleanupDays = 90) {
     cleanup: null,
     errors: [],
   };
-  
-  // Generate new alerts
+
   try {
     results.generation = await runAlertGeneration();
   } catch (error) {
     results.errors.push({ job: 'generation', error: error.message });
   }
-  
-  // Auto-resolve fixed alerts
+
   try {
     results.autoResolve = await runAutoResolve();
   } catch (error) {
     results.errors.push({ job: 'autoResolve', error: error.message });
   }
-  
-  // Cleanup old alerts
+
   try {
     results.cleanup = await runAlertCleanup(cleanupDays);
   } catch (error) {
     results.errors.push({ job: 'cleanup', error: error.message });
   }
-  
-  const duration = Date.now() - startTime;
-  
-  console.log('[Alert Job] All alert jobs completed:', {
-    duration: `${duration}ms`,
-    errors: results.errors.length,
-  });
-  
+
+  const durationMs = Date.now() - startTime;
+
+  jobLog.info(
+    { durationMs, errorCount: results.errors.length },
+    'All alert jobs completed'
+  );
+
   return results;
 }
 
@@ -142,7 +141,7 @@ export async function runAllAlertJobs(cleanupDays = 90) {
  */
 export async function getAlertJobStats() {
   const summary = await alertsService.getAlertSummary();
-  
+
   return {
     timestamp: new Date().toISOString(),
     total_alerts: summary.total_alerts,

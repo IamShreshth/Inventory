@@ -44,7 +44,11 @@ const authenticate = async (req, res, next) => {
       is_active: user.is_active,
       roles: roles,
     };
-    
+
+    if (req.log) {
+      req.log = req.log.child({ userId: user.id });
+    }
+
     next();
   } catch (error) {
     return res.status(401).json(formatError('UNAUTHORIZED', 'Invalid or expired token'));

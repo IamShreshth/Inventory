@@ -23,5 +23,13 @@ export const blockIdSchema = z.object({
 });
 
 export const userIdSchema = z.object({
-  id: z.string().uuid(),
+  userId: z.string().uuid(),
+});
+
+export const listBlocksSchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  user_id: z.string().uuid().optional(),
+  is_active: z.enum(['true', 'false']).optional(),
+  blocked_until: z.string().date().optional(),
 });

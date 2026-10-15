@@ -1,4 +1,5 @@
 import { pool } from './pool.js';
+import logger from '../utils/logger.js';
 
 export const withTransaction = async (work) => {
 	const client = await pool.connect();
@@ -12,7 +13,7 @@ export const withTransaction = async (work) => {
 		try {
 			await client.query('ROLLBACK');
 		} catch (rollbackError) {
-			console.error('Transaction rollback failed', rollbackError);
+			logger.error({ err: rollbackError }, 'Transaction rollback failed');
 		}
 		throw error;
 	} finally {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { alertsApi } from '../api/client'
 import EmptyState from '../components/EmptyState'
+import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import StatusBadge from '../components/StatusBadge'
 
@@ -12,6 +13,14 @@ export default function Alerts() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
+  const [form, setForm] = useState({
+    type: 'custom',
+    severity: 'medium',
+    title: '',
+    message: '',
+  })
+  const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -48,6 +57,28 @@ export default function Alerts() {
     }
   }
 
+  async function handleCreate(e) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      await alertsApi.create({
+        type: form.type,
+        severity: form.severity,
+        title: form.title.trim(),
+        message: form.message.trim(),
+      })
+      setShowCreate(false)
+      setForm({ type: 'custom', severity: 'medium', title: '', message: '' })
+      setPage(1)
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -55,14 +86,27 @@ export default function Alerts() {
           <h1>Alerts</h1>
           <p>Stock, overdue, and system notifications.</p>
         </div>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          disabled={busy}
-          onClick={() => runAction(() => alertsApi.generate())}
-        >
-          Generate alerts
-        </button>
+        <div className="row-actions">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={busy}
+            onClick={() => runAction(() => alertsApi.autoResolve())}
+          >
+            Auto-resolve
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={busy}
+            onClick={() => runAction(() => alertsApi.generate())}
+          >
+            Generate alerts
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>
+            Create alert
+          </button>
+        </div>
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
@@ -162,6 +206,73 @@ export default function Alerts() {
         </div>
         <Pagination pagination={pagination} onChange={setPage} />
       </div>
+
+      {showCreate ? (
+        <Modal
+          title="Create alert"
+          onClose={() => setShowCreate(false)}
+          footer={
+            <>
+              <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>
+                Cancel
+              </button>
+              <button type="submit" form="create-alert" className="btn btn-primary" disabled={saving}>
+                {saving ? 'Saving…' : 'Create'}
+              </button>
+            </>
+          }
+        >
+          <form id="create-alert" className="form" onSubmit={handleCreate}>
+            <div className="form-row">
+              <div className="field">
+                <label htmlFor="type">Type</label>
+                <select
+                  id="type"
+                  value={form.type}
+                  onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
+                >
+                  <option value="custom">Custom</option>
+                  <option value="low_stock">Low stock</option>
+                  <option value="overdue_loan">Overdue loan</option>
+                  <option value="system">System</option>
+                  <option value="maintenance_due">Maintenance due</option>
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="severity">Severity</label>
+                <select
+                  id="severity"
+                  value={form.severity}
+                  onChange={(e) => setForm((p) => ({ ...p, severity: e.target.value }))}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="title">Title</label>
+              <input
+                id="title"
+                value={form.title}
+                onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="message">Message</label>
+              <textarea
+                id="message"
+                value={form.message}
+                onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
+                required
+              />
+            </div>
+          </form>
+        </Modal>
+      ) : null}
     </div>
   )
 }

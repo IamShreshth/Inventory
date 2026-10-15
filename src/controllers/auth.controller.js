@@ -1,6 +1,7 @@
 import argon2 from 'argon2';
 import { generateToken, verifyToken } from '../utils/paseto.util.js';
 import { pool } from '../db/pool.js';
+import logger from '../utils/logger.js';
 
 const formatError = (code, message, details = []) => ({
   error: { code, message, details },
@@ -56,7 +57,7 @@ export const login = async (req, res) => {
       user: { id: user.id, full_name: user.full_name, institute_email: user.institute_email },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    (req.log || logger).error({ err: error }, 'Login error');
     return res.status(500).json(formatError('INTERNAL_ERROR', 'An unexpected error occurred'));
   }
 };
@@ -146,7 +147,7 @@ export const refresh = async (req, res) => {
       refresh_token: newRefreshToken 
     });
   } catch (error) {
-    console.error('Refresh token error:', error);
+    (req.log || logger).error({ err: error }, 'Refresh token error');
     return res.status(401).json(formatError('UNAUTHORIZED', 'Invalid or expired refresh token'));
   }
 };
@@ -169,7 +170,7 @@ export const logout = async (req, res) => {
     // Client should discard the access token
     return res.status(204).send();
   } catch (error) {
-    console.error('Logout error:', error);
+    (req.log || logger).error({ err: error }, 'Logout error');
     // Still return 204 even on error - logout should be forgiving
     return res.status(204).send();
   }
@@ -210,8 +211,11 @@ export const forgotPassword = async (req, res) => {
 
       // In production, send email with reset link containing resetToken
       // For development, log the token
-      console.log(`Password reset token for ${email}: ${resetToken}`);
-      console.log(`Reset link: http://localhost:3000/reset-password?token=${resetToken}`);
+      (req.log || logger).info({ email }, 'Password reset token generated');
+      (req.log || logger).debug(
+        { email, resetToken },
+        'Password reset token (development debug)'
+      );
       
       // TODO: Integrate email service
       // await sendEmail({
@@ -226,7 +230,7 @@ export const forgotPassword = async (req, res) => {
       message: 'If the email exists, a reset link has been sent.' 
     });
   } catch (error) {
-    console.error('Forgot password error:', error);
+    (req.log || logger).error({ err: error }, 'Forgot password error');
     return res.status(500).json(formatError('INTERNAL_ERROR', 'An unexpected error occurred'));
   }
 };
@@ -296,7 +300,7 @@ export const resetPassword = async (req, res) => {
 
     return res.status(204).send();
   } catch (error) {
-    console.error('Reset password error:', error);
+    (req.log || logger).error({ err: error }, 'Reset password error');
     return res.status(500).json(formatError('INTERNAL_ERROR', 'An unexpected error occurred'));
   }
 };
@@ -364,7 +368,7 @@ export const register = async (req, res) => {
       user: { id: user.id, full_name: user.full_name, institute_email: user.institute_email },
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    (req.log || logger).error({ err: error }, 'Registration error');
     return res.status(500).json(formatError('INTERNAL_ERROR', 'An unexpected error occurred'));
   }
 };

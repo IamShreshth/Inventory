@@ -665,3 +665,17 @@ tr:hover td {
     grid-template-columns: 1fr;
   }
 }
+
+.code-block {
+  margin: 0;
+  padding: 0.75rem;
+  overflow: auto;
+  max-height: 280px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

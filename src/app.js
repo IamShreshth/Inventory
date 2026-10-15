@@ -18,7 +18,10 @@ import auditLogRouter from './modules/audit-log/audit-log.routes.js';
 import reportsRouter from './modules/reports/reports.routes.js';
 import alertsRouter from './modules/alerts/alerts.routes.js';
 import transfersRouter from './modules/transfers/transfers.routes.js';
-import { AppError } from './shared/app-error.js';
+import { requestIdMiddleware } from './middleware/request-id.js';
+import { requestLogger } from './middleware/request-logger.js';
+import { errorHandler } from './middleware/error-handler.js';
+import { notFoundHandler } from './middleware/not-found.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,7 +34,7 @@ app.use(express.json());
 // CORS middleware for development
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Request-Id');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
@@ -39,12 +42,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Log incoming requests in non-test environments
+app.use(requestIdMiddleware);
 if (process.env.NODE_ENV !== 'test') {
-  app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-    next();
-  });
+  app.use(requestLogger({ ignorePaths: [] }));
 }
 
 // Health endpoint (no authentication required)
@@ -104,39 +104,18 @@ app.use('/api/v1/transfers', authenticate, transfersRouter);
 if (process.env.NODE_ENV === 'production') {
   const frontendDistPath = path.join(__dirname, '../frontend/dist');
   app.use(express.static(frontendDistPath));
-  
+
   // Handle client-side routing - serve index.html for all non-API routes
-  app.get('*', (req, res) => {
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl?.startsWith('/api')) {
+      return next();
+    }
     res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }
 
-// Global error fallback handler
-app.use((err, req, res, next) => {
-  if (process.env.NODE_ENV !== 'test') {
-    console.error(err.stack);
-  }
-  
-  // Handle AppError instances
-  if (err instanceof AppError) {
-    return res.status(err.statusCode || err.status || 500).json({
-      error: {
-        code: err.code,
-        message: err.message,
-        details: err.details || [],
-      },
-    });
-  }
-  
-  // Handle other errors
-  res.status(500).json({
-    error: {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Something went wrong on the server.',
-      details: [],
-    },
-  });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export { app };
 export default app;
