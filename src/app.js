@@ -1,4 +1,6 @@
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.routes.js';
 import authenticate from './middlewares/auth.middleware.js';
 import { checkDatabase } from './db/pool.js';
@@ -18,10 +20,24 @@ import alertsRouter from './modules/alerts/alerts.routes.js';
 import transfersRouter from './modules/transfers/transfers.routes.js';
 import { AppError } from './shared/app-error.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
+
+// CORS middleware for development
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // Log incoming requests in non-test environments
 if (process.env.NODE_ENV !== 'test') {
@@ -51,11 +67,12 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Root route
-app.get('/', (req, res) => {
+// API status endpoint
+app.get('/api', (req, res) => {
   res.status(200).json({
     status: 'success',
-    message: 'Welcome to the API server',
+    message: 'BERM API Server',
+    version: '1.0.0',
   });
 });
 
@@ -82,6 +99,17 @@ app.use('/api/v1/audit-log', authenticate, auditLogRouter);
 app.use('/api/v1', authenticate, reportsRouter);
 app.use('/api/v1/alerts', authenticate, alertsRouter);
 app.use('/api/v1/transfers', authenticate, transfersRouter);
+
+// Serve static files from frontend build in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendDistPath = path.join(__dirname, '../frontend/dist');
+  app.use(express.static(frontendDistPath));
+  
+  // Handle client-side routing - serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
 
 // Global error fallback handler
 app.use((err, req, res, next) => {
