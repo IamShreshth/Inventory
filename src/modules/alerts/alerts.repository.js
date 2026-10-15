@@ -322,10 +322,10 @@ export async function deleteOldAlerts(daysOld = 90) {
   const query = `
     DELETE FROM alerts
     WHERE status IN ('resolved', 'dismissed')
-      AND updated_at < now() - interval '${daysOld} days'
+      AND updated_at < now() - $1 * interval '1 day'
     RETURNING id
   `;
 
-  const result = await pool.query(query);
+  const result = await pool.query(query, [daysOld]);
   return result.rows.length;
 }

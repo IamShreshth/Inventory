@@ -200,14 +200,15 @@ async function checkImplementedEndpoints() {
   const implementedModules = [
     'auth', 'users', 'org-units', 'categories', 'locations',
     'vendors', 'purchases', 'assets', 'issues', 'drop-boxes',
-    'borrower-blocks', 'audit-log', 'reports'
+    'borrower-blocks', 'audit-log', 'reports', 'alerts', 'transfers'
   ];
 
   for (const module of implementedModules) {
     const modulePath = path.join(process.cwd(), 'src/modules', module, `${module}.routes.js`);
+    const moduleUnderscorePath = path.join(process.cwd(), 'src/modules', module.replace(/-/g, '_'), `${module.replace(/-/g, '_')}.routes.js`);
     const authPath = path.join(process.cwd(), 'src/routes/auth.routes.js');
     
-    const exists = fs.existsSync(modulePath) || (module === 'auth' && fs.existsSync(authPath));
+    const exists = fs.existsSync(modulePath) || fs.existsSync(moduleUnderscorePath) || (module === 'auth' && fs.existsSync(authPath));
     logCheck('testing', `${module} module routes`, exists);
   }
 }

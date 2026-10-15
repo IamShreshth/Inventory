@@ -308,7 +308,7 @@ export async function generateWarrantyExpiryAlerts(daysBeforeExpiry = 30) {
     FROM assets a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.warranty_until IS NOT NULL
-      AND a.warranty_until BETWEEN now() AND now() + interval '${daysBeforeExpiry} days'
+      AND a.warranty_until BETWEEN now() AND now() + $1 * interval '1 day'
       AND NOT EXISTS (
         SELECT 1 FROM alerts al
         WHERE al.asset_id = a.id
@@ -317,7 +317,7 @@ export async function generateWarrantyExpiryAlerts(daysBeforeExpiry = 30) {
       )
   `;
 
-  const result = await pool.query(query);
+  const result = await pool.query(query, [daysBeforeExpiry]);
   const alerts = [];
 
   for (const asset of result.rows) {
