@@ -12,6 +12,7 @@ import purchasesRouter from './src/modules/purchases/purchases.routes.js';
 import issuesRouter from './src/modules/issues/issues.routes.js';
 import dropBoxesRouter from './src/modules/drop-boxes/drop-boxes.routes.js';
 import borrowerBlocksRouter from './src/modules/borrower-blocks/borrower-blocks.routes.js';
+import alertsRouter from './src/modules/alerts/alerts.routes.js';
 import { AppError } from './src/shared/app-error.js';
 
 const app = express();
@@ -70,6 +71,7 @@ app.use('/api/v1/purchases', authenticate, purchasesRouter);
 app.use('/api/v1/issues', authenticate, issuesRouter);
 app.use('/api/v1/drop-boxes', authenticate, dropBoxesRouter);
 app.use('/api/v1/blocks', authenticate, borrowerBlocksRouter);
+app.use('/api/v1/alerts', authenticate, alertsRouter);
 
 // Global error fallback handler
 app.use((err, req, res, next) => {
