@@ -13,7 +13,8 @@ import issuesRouter from './src/modules/issues/issues.routes.js';
 import dropBoxesRouter from './src/modules/drop-boxes/drop-boxes.routes.js';
 import borrowerBlocksRouter from './src/modules/borrower-blocks/borrower-blocks.routes.js';
 import assetsRouter from './src/modules/assets/assets.routes.js';
-import alertsRouter from './src/modules/alerts/alerts.routes.js';
+import auditLogRouter from './src/modules/audit-log/audit-log.routes.js';
+import reportsRouter from './src/modules/reports/reports.routes.js';
 import { AppError } from './src/shared/app-error.js';
 
 const app = express();
@@ -73,6 +74,8 @@ app.use('/api/v1/assets', authenticate, assetsRouter);
 app.use('/api/v1/issues', authenticate, issuesRouter);
 app.use('/api/v1/drop-boxes', authenticate, dropBoxesRouter);
 app.use('/api/v1/blocks', authenticate, borrowerBlocksRouter);
+app.use('/api/v1/audit-log', authenticate, auditLogRouter);
+app.use('/api/v1', authenticate, reportsRouter);
 app.use('/api/v1/alerts', authenticate, alertsRouter);
 
 // Global error fallback handler
