@@ -4,6 +4,12 @@ import authRoutes from './src/routes/auth.routes.js';
 import authenticate from './src/middlewares/auth.middleware.js';
 import { checkDatabase } from './src/db/pool.js';
 import usersRouter from './src/modules/users/users.routes.js';
+import orgUnitsRouter from './src/modules/org_units/org_units.routes.js';
+import categoriesRouter from './src/modules/categories/categories.routes.js';
+import locationsRouter from './src/modules/locations/locations.routes.js';
+import vendorsRouter from './src/modules/vendors/vendors.routes.js';
+import purchasesRouter from './src/modules/purchases/purchases.routes.js';
+import { AppError } from './src/shared/app-error.js';
 
 const app = express();
 
@@ -53,10 +59,28 @@ app.get('/api/v1/users/me', authenticate, (req, res) => {
 });
 
 app.use('/api/v1/users', authenticate, usersRouter);
+app.use('/api/v1/org-units', authenticate, orgUnitsRouter);
+app.use('/api/v1/categories', authenticate, categoriesRouter);
+app.use('/api/v1/locations', authenticate, locationsRouter);
+app.use('/api/v1/vendors', authenticate, vendorsRouter);
+app.use('/api/v1/purchases', authenticate, purchasesRouter);
 
 // Global error fallback handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
+  
+  // Handle AppError instances
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      error: {
+        code: err.code,
+        message: err.message,
+        details: err.details,
+      },
+    });
+  }
+  
+  // Handle other errors
   res.status(500).json({
     error: {
       code: 'INTERNAL_SERVER_ERROR',
