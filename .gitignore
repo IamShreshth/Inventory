@@ -70,6 +70,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 PROGRESS.md
+ISSUES_PROGRESS.md
 pnpm-debug.log*
 
 # IDEs and OS

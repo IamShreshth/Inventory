@@ -10,6 +10,8 @@ import locationsRouter from './src/modules/locations/locations.routes.js';
 import vendorsRouter from './src/modules/vendors/vendors.routes.js';
 import purchasesRouter from './src/modules/purchases/purchases.routes.js';
 import issuesRouter from './src/modules/issues/issues.routes.js';
+import dropBoxesRouter from './src/modules/drop-boxes/drop-boxes.routes.js';
+import borrowerBlocksRouter from './src/modules/borrower-blocks/borrower-blocks.routes.js';
 import { AppError } from './src/shared/app-error.js';
 
 const app = express();
@@ -66,6 +68,8 @@ app.use('/api/v1/locations', authenticate, locationsRouter);
 app.use('/api/v1/vendors', authenticate, vendorsRouter);
 app.use('/api/v1/purchases', authenticate, purchasesRouter);
 app.use('/api/v1/issues', authenticate, issuesRouter);
+app.use('/api/v1/drop-boxes', authenticate, dropBoxesRouter);
+app.use('/api/v1/blocks', authenticate, borrowerBlocksRouter);
 
 // Global error fallback handler
 app.use((err, req, res, next) => {
