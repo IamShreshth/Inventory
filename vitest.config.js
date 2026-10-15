@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // Integration suites share one PostgreSQL database and clean up their own fixtures.
+    fileParallelism: false,
     setupFiles: ['./tests/setup.js'],
     coverage: {
       provider: 'v8',
