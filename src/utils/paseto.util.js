@@ -1,5 +1,6 @@
+import { webcrypto } from 'node:crypto';
 import { LocalProtocol } from 'paseto';
-import { DecryptFactory, EncryptFactory, GenerateKeyFactory } from 'paseto/v3/local';
+import { DecryptFactory, EncryptFactory, GenerateKeyFactory, LocalKeyFromCryptoKey } from 'paseto/v3/local';
 import 'dotenv/config';
 
 const protocol = new LocalProtocol(GenerateKeyFactory, EncryptFactory, DecryptFactory);
@@ -7,7 +8,19 @@ let keyPromise;
 
 const getKey = async () => {
   if (!keyPromise) {
-    keyPromise = protocol.GenerateKey();
+    const encodedKey = process.env.PASETO_V3_LOCAL_KEY_BASE64;
+    if (!encodedKey) {
+      throw new Error('PASETO_V3_LOCAL_KEY_BASE64 is required');
+    }
+
+    const rawKey = Buffer.from(encodedKey, 'base64');
+    if (rawKey.length !== 32) {
+      throw new Error('PASETO_V3_LOCAL_KEY_BASE64 must decode to 32 bytes');
+    }
+
+    keyPromise = webcrypto.subtle
+      .importKey('raw', rawKey, 'HKDF', false, ['deriveBits'])
+      .then(LocalKeyFromCryptoKey);
   }
   return await keyPromise;
 };

@@ -15,4 +15,5 @@ router.delete('/:id', validate(idSchema, 'params'), controller.deleteUser);
 // Mount roles sub-routes under /users/:id/roles
 router.use('/:id/roles', rolesRouter);
 
+export { router as usersRouter };
 export default router;
