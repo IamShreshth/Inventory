@@ -3,7 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
+import { SignupPage } from '@/pages/SignupPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { AssetsListPage } from '@/pages/assets/AssetsListPage';
 import { AssetDetailPage } from '@/pages/assets/AssetDetailPage';
@@ -34,52 +36,243 @@ function App() {
 
   return (
     <Routes>
+      {/* Public routes */}
+      <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+      />
+      <Route
+        path="/signup"
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignupPage />}
       />
       
+      {/* Protected routes */}
       <Route
-        path="/*"
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <AppLayout>
-              <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/assets" element={<AssetsListPage />} />
-                <Route path="/assets/:id" element={<AssetDetailPage />} />
-                <Route path="/assets/:id/edit" element={<AssetFormPage />} />
-                
-                {/* Borrower routes */}
-                <Route path="/my-loans" element={<MyLoansPage />} />
-                <Route path="/request-issue" element={<RequestIssuePage />} />
-                
-                {/* Staff routes */}
-                <Route path="/issues" element={<IssueQueuePage />} />
-                <Route path="/issues/active" element={<ActiveIssuesPage />} />
-                <Route path="/issues/overdue" element={<OverduePage />} />
-                <Route path="/issues/dropped" element={<DroppedPage />} />
-                
-                {/* Admin routes */}
-                <Route path="/org-units" element={<OrgUnitsPage />} />
-                <Route path="/categories" element={<CategoriesPage />} />
-                <Route path="/locations" element={<LocationsPage />} />
-                <Route path="/vendors" element={<VendorsPage />} />
-                <Route path="/purchases" element={<PurchasesPage />} />
-                <Route path="/users" element={<UsersPage />} />
-                <Route path="/borrower-blocks" element={<BorrowerBlocksPage />} />
-                <Route path="/drop-boxes" element={<DropBoxesPage />} />
-                
-                {/* Reports & Audit */}
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/audit-log" element={<AuditLogPage />} />
-                
-                <Route path="*" element={<div className="text-text">Page not found</div>} />
-              </Routes>
+              <DashboardPage />
             </AppLayout>
           </ProtectedRoute>
         }
       />
+      
+      <Route
+        path="/assets"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <AssetsListPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/assets/:id"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <AssetDetailPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/assets/:id/edit"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <AssetFormPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Borrower routes */}
+      <Route
+        path="/my-loans"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <MyLoansPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/request-issue"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <RequestIssuePage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Staff routes */}
+      <Route
+        path="/issues"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <IssueQueuePage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/issues/active"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <ActiveIssuesPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/issues/overdue"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <OverduePage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/issues/dropped"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <DroppedPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Admin routes */}
+      <Route
+        path="/org-units"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <OrgUnitsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/categories"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <CategoriesPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/locations"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <LocationsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/vendors"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <VendorsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/purchases"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <PurchasesPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <UsersPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/borrower-blocks"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <BorrowerBlocksPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/drop-boxes"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <DropBoxesPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Reports & Audit */}
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <ReportsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/audit-log"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <AuditLogPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route path="*" element={<div className="flex items-center justify-center min-h-screen text-text">Page not found</div>} />
     </Routes>
   );
 }

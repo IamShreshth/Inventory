@@ -31,7 +31,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     label: 'Dashboard',
-    path: '/',
+    path: '/dashboard',
     icon: <BarChart3 size={16} strokeWidth={1.5} />,
   },
   {
