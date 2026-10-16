@@ -31,9 +31,9 @@ const app = express();
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
-// CORS middleware for development
+// CORS middleware (set CORS_ORIGIN on Render to your frontend URL to lock this down)
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Request-Id');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') {
@@ -46,31 +46,6 @@ app.use(requestIdMiddleware);
 if (process.env.NODE_ENV !== 'test') {
   app.use(requestLogger({ ignorePaths: [] }));
 }
-
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'inventory-api' });
-});
-
-// Health endpoint (no authentication required)
-app.get('/health', async (req, res) => {
-  try {
-    await checkDatabase();
-    res.status(200).json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      service: 'berm-inventory-api',
-      database: 'connected',
-    });
-  } catch (error) {
-    res.status(503).json({
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      service: 'berm-inventory-api',
-      database: 'disconnected',
-    });
-  }
-});
-
 
 // Health endpoint (no authentication required)
 app.get('/health', async (req, res) => {
@@ -130,9 +105,10 @@ if (process.env.NODE_ENV === 'production') {
   const frontendDistPath = path.join(__dirname, '../frontend/dist');
   app.use(express.static(frontendDistPath));
 
-  // Handle client-side routing - serve index.html for all non-API routes
-  app.get('*', (req, res, next) => {
-    if (req.originalUrl?.startsWith('/api')) {
+  // Handle client-side routing - serve index.html for all non-API GET routes.
+  // Uses app.use (no path) because a bare '*' is invalid in Express 5.
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.originalUrl.startsWith('/api')) {
       return next();
     }
     res.sendFile(path.join(frontendDistPath, 'index.html'));
