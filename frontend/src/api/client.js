@@ -2,6 +2,9 @@ const TOKEN_KEY = 'gi_access_token'
 const REFRESH_KEY = 'gi_refresh_token'
 const USER_KEY = 'gi_user'
 
+// Use VITE_API_URL from .env if set, otherwise fall back to empty string (relative URLs for dev proxy)
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
 }
@@ -52,7 +55,7 @@ async function refreshAccessToken() {
   const refresh_token = getRefreshToken()
   if (!refresh_token) return null
 
-  const res = await fetch('/api/v1/auth/refresh', {
+  const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refresh_token }),
@@ -88,13 +91,13 @@ export async function api(path, { method = 'GET', body, auth = true, headers = {
     if (token) opts.headers.Authorization = `Bearer ${token}`
   }
 
-  let res = await fetch(`/api/v1${path}`, opts)
+  let res = await fetch(`${API_BASE}/api/v1${path}`, opts)
 
   if (res.status === 401 && auth) {
     const newToken = await refreshAccessToken()
     if (newToken) {
       opts.headers.Authorization = `Bearer ${newToken}`
-      res = await fetch(`/api/v1${path}`, opts)
+      res = await fetch(`${API_BASE}/api/v1${path}`, opts)
     }
   }
 
