@@ -4,14 +4,15 @@ import { checkDatabase } from './src/db/pool.js';
 import logger from './src/utils/logger.js';
 
 const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0'
 
 const startServer = async () => {
   try {
     await checkDatabase();
     logger.info({ port: PORT }, 'Database connected successfully');
 
-    const server = app.listen(PORT, () => {
-      logger.info({ port: PORT, env: process.env.NODE_ENV || 'development' }, 'Server listening');
+    const server = app.listen(PORT, HOST,() => {
+      logger.info({ port: PORT, env: process.env.NODE_ENV || 'development' }, `Server listening running ${HOST} at port ${PORT}`);
     });
 
     const shutdown = (signal) => {

@@ -8,11 +8,11 @@ export default defineConfig({
     proxy: {
       '/api': {
         // target: 'http://localhost:3000',
-           target: 'https://arranged-humidity-pgp-cams.trycloudflare.com',
+           target: 'http://172.31.50.236:3000',
         changeOrigin: true,
       },
       '/health': {
-        target: 'https://arranged-humidity-pgp-cams.trycloudflare.com',
+        target: 'http://172.31.50.236:3000',
         changeOrigin: true,
       },
     },
