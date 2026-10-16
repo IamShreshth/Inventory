@@ -47,6 +47,31 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(requestLogger({ ignorePaths: [] }));
 }
 
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'inventory-api' });
+});
+
+// Health endpoint (no authentication required)
+app.get('/health', async (req, res) => {
+  try {
+    await checkDatabase();
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'berm-inventory-api',
+      database: 'connected',
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      service: 'berm-inventory-api',
+      database: 'disconnected',
+    });
+  }
+});
+
+
 // Health endpoint (no authentication required)
 app.get('/health', async (req, res) => {
   try {
