@@ -17,6 +17,14 @@ npm install
 npm run db:migrate
 ```
 
+`npm run start:prod` runs migrations and seeds a small, repeatable demo inventory before starting the API. Set the Render service's Start Command to `npm run start:prod` to seed automatically on each deployment. The seeder accepts Render's internal database URL when running on a Render service; for a manual run from your machine, set `DATABASE_URL` to the Render external database URL and run:
+
+```bash
+npm run db:seed:demo -- --confirm-render
+```
+
+The seed creates clearly labeled demo users, roles, categories, locations, assets, an active loan, and a low-stock alert. It does not delete or overwrite existing records; demo users have no password and cannot log in.
+
 Generate a PASETO key:
 
 ```bash
