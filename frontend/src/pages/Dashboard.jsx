@@ -6,41 +6,44 @@ import StatusBadge from '../components/StatusBadge'
 
 export default function Dashboard() {
   const [summary, setSummary] = useState(null)
-  const [overdue, setOverdue] = useState([])
-  const [alerts, setAlerts] = useState([])
-  const [error, setError] = useState('')
+  const [overdue, setOverdue] = useState(null)
+  const [alerts, setAlerts] = useState(null)
+  const [summaryError, setSummaryError] = useState('')
+  const [overdueError, setOverdueError] = useState('')
+  const [alertsError, setAlertsError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
 
     async function load() {
       setLoading(true)
-      setError('')
-      try {
-        const [dash, overdueRes, alertsRes] = await Promise.all([
-          dashboardApi.summary(),
-          issuesApi.overdue().catch(() => ({ data: [] })),
-          alertsApi.list({ limit: 5, status: 'open' }).catch(() => ({ data: [] })),
-        ])
-        if (cancelled) return
-        setSummary(dash.data)
-        setOverdue(overdueRes.data || [])
-        setAlerts(alertsRes.data || [])
-      } catch (err) {
-        if (!cancelled) setError(err.message)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+      setSummaryError('')
+      setOverdueError('')
+      setAlertsError('')
+
+      const [dash, overdueRes, alertsRes] = await Promise.allSettled([
+        dashboardApi.summary(),
+        issuesApi.overdue(),
+        alertsApi.list({ limit: 5, status: 'open' }),
+      ])
+
+      if (cancelled) return
+      if (dash.status === 'fulfilled') setSummary(dash.value.data)
+      else setSummaryError(dash.reason?.message || String(dash.reason))
+      if (overdueRes.status === 'fulfilled') setOverdue(overdueRes.value.data)
+      else setOverdueError(overdueRes.reason?.message || String(overdueRes.reason))
+      if (alertsRes.status === 'fulfilled') setAlerts(alertsRes.value.data)
+      else setAlertsError(alertsRes.reason?.message || String(alertsRes.reason))
+      setLoading(false)
     }
 
     load()
     return () => {
       cancelled = true
     }
-  }, [])
-
-  if (loading) return <div className="loading">Loading dashboard…</div>
+  }, [reloadKey])
 
   return (
     <div>
@@ -49,12 +52,34 @@ export default function Dashboard() {
           <h1>Dashboard</h1>
           <p>Snapshot of inventory health and open loans.</p>
         </div>
-        <Link to="/assets" className="btn btn-primary">
-          Browse assets
-        </Link>
+        <div className="toolbar">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setReloadKey((key) => key + 1)}
+            disabled={loading}
+          >
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </button>
+          <Link to="/assets" className="btn btn-primary">
+            Browse assets
+          </Link>
+        </div>
       </div>
 
-      {error ? <div className="error-banner">{error}</div> : null}
+      {summaryError ? (
+        <div className="error-banner" role="alert">
+          Dashboard summary failed: {summaryError}
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => setReloadKey((key) => key + 1)}
+            disabled={loading}
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <div className="stats">
         <div className="stat">
@@ -88,7 +113,13 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="table-wrap">
-            {overdue.length === 0 ? (
+            {overdueError ? (
+              <div className="error-banner" role="alert">
+                Could not load overdue loans: {overdueError}
+              </div>
+            ) : overdue === null ? (
+              <div className="loading">Loading overdue loans…</div>
+            ) : overdue.length === 0 ? (
               <EmptyState message="No overdue loans." />
             ) : (
               <table>
@@ -125,7 +156,13 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="table-wrap">
-            {alerts.length === 0 ? (
+            {alertsError ? (
+              <div className="error-banner" role="alert">
+                Could not load alerts: {alertsError}
+              </div>
+            ) : alerts === null ? (
+              <div className="loading">Loading alerts…</div>
+            ) : alerts.length === 0 ? (
               <EmptyState message="No open alerts." />
             ) : (
               <table>
