@@ -165,7 +165,7 @@ export default function Transfers() {
           ) : items.length === 0 ? (
             <EmptyState message="No transfers in this view." />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Asset</th>
@@ -178,16 +178,16 @@ export default function Transfers() {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td>
+                    <td data-label="Asset" data-card-title>
                       <div>{item.asset_name || item.asset_id?.slice(0, 8)}</div>
                       <div className="muted">{item.id.slice(0, 8)}</div>
                     </td>
-                    <td>{item.quantity}</td>
-                    <td>
+                    <td data-label="Qty">{item.quantity}</td>
+                    <td data-label="Status">
                       <StatusBadge value={item.status} />
                     </td>
-                    <td className="muted">{item.reason || '—'}</td>
-                    <td>
+                    <td className="muted" data-label="Reason">{item.reason || '—'}</td>
+                    <td data-actions>
                       <div className="row-actions">
                         {isAdmin && item.status === 'requested' ? (
                           <>

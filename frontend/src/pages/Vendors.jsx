@@ -221,7 +221,7 @@ export default function Vendors() {
           ) : items.length === 0 ? (
             <EmptyState message="No vendors yet." />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -234,15 +234,15 @@ export default function Vendors() {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.name}</td>
-                    <td className="muted">{item.code}</td>
-                    <td className="muted">{item.contact_person || item.email || '—'}</td>
-                    <td>
+                    <td data-label="Name" data-card-title>{item.name}</td>
+                    <td className="muted" data-label="Code">{item.code}</td>
+                    <td className="muted" data-label="Contact">{item.contact_person || item.email || '—'}</td>
+                    <td data-label="Active">
                       <span className={`badge ${item.is_active !== false ? 'badge-ok' : 'badge-danger'}`}>
                         {item.is_active !== false ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td>
+                    <td data-actions>
                       <div className="row-actions">
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>
                           Edit

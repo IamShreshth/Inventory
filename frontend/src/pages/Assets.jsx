@@ -237,7 +237,7 @@ export default function Assets() {
           ) : items.length === 0 ? (
             <EmptyState message={isAdmin ? 'No assets found. Add one to get started.' : 'No assets found.'} />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -251,21 +251,21 @@ export default function Assets() {
               <tbody>
                 {items.map((asset) => (
                   <tr key={asset.id}>
-                    <td>
+                    <td data-label="Name" data-card-title>
                       <div>{asset.name}</div>
                       <div className="muted">
                         {asset.asset_tag || asset.brand_model || asset.id.slice(0, 8)}
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <StatusBadge value={asset.status} />
                     </td>
-                    <td>
+                    <td data-label="Condition">
                       <StatusBadge value={asset.condition} />
                     </td>
-                    <td>{asset.quantity}</td>
-                    <td className="muted">{asset.tracking}</td>
-                    <td>
+                    <td data-label="Qty">{asset.quantity}</td>
+                    <td className="muted" data-label="Tracking">{asset.tracking}</td>
+                    <td data-actions>
                       <div className="row-actions">
                         {isAdmin ? (
                           <>

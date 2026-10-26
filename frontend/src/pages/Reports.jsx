@@ -89,7 +89,7 @@ export default function Reports() {
           ) : rows.length === 0 ? (
             <EmptyState message="No rows returned." />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   {columns.map((col) => (
@@ -101,7 +101,12 @@ export default function Reports() {
                 {rows.map((row, idx) => (
                   <tr key={row.id || idx}>
                     {columns.map((col) => (
-                      <td key={col} className={typeof row[col] === 'string' ? 'muted' : undefined}>
+                      <td
+                        key={col}
+                        data-label={col.replace(/_/g, ' ')}
+                        data-card-title={columns[0] === col ? true : undefined}
+                        className={typeof row[col] === 'string' ? 'muted' : undefined}
+                      >
                         {row[col] == null
                           ? '—'
                           : typeof row[col] === 'object'

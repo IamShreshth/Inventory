@@ -196,7 +196,7 @@ export default function Issues() {
           ) : items.length === 0 ? (
             <EmptyState message="No loans in this view." />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Asset</th>
@@ -210,19 +210,19 @@ export default function Issues() {
               <tbody>
                 {items.map((issue) => (
                   <tr key={issue.id}>
-                    <td>
+                    <td data-label="Asset" data-card-title>
                       <div>{issue.asset_name || issue.asset_id?.slice(0, 8)}</div>
                       <div className="muted">{issue.id.slice(0, 8)}</div>
                     </td>
-                    <td>{issue.quantity}</td>
-                    <td>
+                    <td data-label="Qty">{issue.quantity}</td>
+                    <td data-label="Status">
                       <StatusBadge value={issue.status} />
                     </td>
-                    <td className="muted">
+                    <td className="muted" data-label="Due">
                       {issue.due_at ? new Date(issue.due_at).toLocaleDateString() : '—'}
                     </td>
-                    <td className="muted">{issue.purpose || '—'}</td>
-                    <td>
+                    <td className="muted" data-label="Purpose">{issue.purpose || '—'}</td>
+                    <td data-actions>
                       <div className="row-actions">
                         {issue.status === 'requested' ? (
                           <>

@@ -337,7 +337,7 @@ export default function Catalog() {
           ) : items.length === 0 ? (
             <EmptyState message="Nothing in this catalog yet." />
           ) : tab === 'categories' ? (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -350,11 +350,11 @@ export default function Catalog() {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.name}</td>
-                    <td>{item.default_loan_days}</td>
-                    <td>{item.default_low_stock_threshold}</td>
-                    <td>{item.max_renewals}</td>
-                    <td>
+                    <td data-label="Name" data-card-title>{item.name}</td>
+                    <td data-label="Loan days">{item.default_loan_days}</td>
+                    <td data-label="Low stock">{item.default_low_stock_threshold}</td>
+                    <td data-label="Max renewals">{item.max_renewals}</td>
+                    <td data-actions>
                       <div className="row-actions">
                         {canManageTab ? (
                           <>
@@ -377,7 +377,7 @@ export default function Catalog() {
               </tbody>
             </table>
           ) : tab === 'locations' ? (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -390,13 +390,13 @@ export default function Catalog() {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.name}</td>
-                    <td className="muted">{item.type}</td>
-                    <td className="muted">{item.building || '—'}</td>
-                    <td className="muted">
+                    <td data-label="Name" data-card-title>{item.name}</td>
+                    <td className="muted" data-label="Type">{item.type}</td>
+                    <td className="muted" data-label="Building">{item.building || '—'}</td>
+                    <td className="muted" data-label="Room">
                       {[item.floor, item.room_number].filter(Boolean).join(' / ') || '—'}
                     </td>
-                    <td>
+                    <td data-actions>
                       <div className="row-actions">
                         {canManageTab ? (
                           <>
@@ -419,7 +419,7 @@ export default function Catalog() {
               </tbody>
             </table>
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -432,13 +432,13 @@ export default function Catalog() {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.name}</td>
-                    <td className="muted">{item.code}</td>
-                    <td className="muted">{item.type}</td>
-                    <td>
+                    <td data-label="Name" data-card-title>{item.name}</td>
+                    <td className="muted" data-label="Code">{item.code}</td>
+                    <td className="muted" data-label="Type">{item.type}</td>
+                    <td data-label="Active">
                       <StatusPill active={item.is_active !== false} />
                     </td>
-                    <td>
+                    <td data-actions>
                       <div className="row-actions">
                         {canManageTab ? (
                           <>

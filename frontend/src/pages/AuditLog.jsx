@@ -90,7 +90,7 @@ export default function AuditLog() {
           ) : items.length === 0 ? (
             <EmptyState message="No audit entries." />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>When</th>
@@ -103,15 +103,15 @@ export default function AuditLog() {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td className="muted">
+                    <td className="muted" data-label="When" data-card-title>
                       {item.created_at ? new Date(item.created_at).toLocaleString() : '—'}
                     </td>
-                    <td>{item.table_name}</td>
-                    <td>
+                    <td data-label="Table">{item.table_name}</td>
+                    <td data-label="Action">
                       <StatusBadge value={item.action} />
                     </td>
-                    <td className="muted">{item.record_id?.slice(0, 8) || '—'}</td>
-                    <td>
+                    <td className="muted" data-label="Record">{item.record_id?.slice(0, 8) || '—'}</td>
+                    <td data-actions>
                       <button type="button" className="btn btn-ghost btn-sm" onClick={() => openDetail(item.id)}>
                         View
                       </button>

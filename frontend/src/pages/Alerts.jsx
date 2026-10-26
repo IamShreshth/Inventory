@@ -148,7 +148,7 @@ export default function Alerts() {
           ) : items.length === 0 ? (
             <EmptyState message="No alerts in this view." />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Title</th>
@@ -161,18 +161,18 @@ export default function Alerts() {
               <tbody>
                 {items.map((alert) => (
                   <tr key={alert.id}>
-                    <td>
+                    <td data-label="Title" data-card-title>
                       <div>{alert.title}</div>
                       <div className="muted">{alert.message}</div>
                     </td>
-                    <td className="muted">{alert.type?.replace(/_/g, ' ')}</td>
-                    <td>
+                    <td className="muted" data-label="Type">{alert.type?.replace(/_/g, ' ')}</td>
+                    <td data-label="Severity">
                       <StatusBadge value={alert.severity} />
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <StatusBadge value={alert.status} />
                     </td>
-                    <td>
+                    <td data-actions>
                       <div className="row-actions">
                         {isAdmin && alert.status === 'open' ? (
                           <button

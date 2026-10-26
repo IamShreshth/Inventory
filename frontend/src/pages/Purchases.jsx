@@ -193,7 +193,7 @@ export default function Purchases() {
           ) : items.length === 0 ? (
             <EmptyState message="No purchases yet." />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>PO no.</th>
@@ -206,16 +206,16 @@ export default function Purchases() {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td>
+                    <td data-label="PO no." data-card-title>
                       <div>{item.purchase_order_no}</div>
                       <div className="muted">{item.vendor_name || item.vendor_id?.slice(0, 8)}</div>
                     </td>
-                    <td className="muted">{item.purchase_date}</td>
-                    <td>{item.grand_total ?? item.total_amount}</td>
-                    <td>
+                    <td className="muted" data-label="Date">{item.purchase_date}</td>
+                    <td data-label="Amount">{item.grand_total ?? item.total_amount}</td>
+                    <td data-label="Payment">
                       <StatusBadge value={item.payment_status} />
                     </td>
-                    <td>
+                    <td data-actions>
                       <div className="row-actions">
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => openDetail(item)}>
                           Items
@@ -400,7 +400,7 @@ export default function Purchases() {
             {detailItems.length === 0 ? (
               <EmptyState message="No line items yet." />
             ) : (
-              <table>
+              <table className="responsive-table">
                 <thead>
                   <tr>
                     <th>Description</th>
@@ -412,10 +412,10 @@ export default function Purchases() {
                 <tbody>
                   {detailItems.map((row) => (
                     <tr key={row.id}>
-                      <td>{row.description}</td>
-                      <td>{row.quantity}</td>
-                      <td>{row.unit_price}</td>
-                      <td>
+                      <td data-label="Description" data-card-title>{row.description}</td>
+                      <td data-label="Qty">{row.quantity}</td>
+                      <td data-label="Unit">{row.unit_price}</td>
+                      <td data-actions>
                         {isAdmin ? (
                           <button
                             type="button"

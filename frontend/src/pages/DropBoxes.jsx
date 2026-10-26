@@ -226,7 +226,7 @@ export default function DropBoxes({ embedded = false }) {
           ) : items.length === 0 ? (
             <EmptyState message="No drop boxes yet." />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -238,17 +238,17 @@ export default function DropBoxes({ embedded = false }) {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td>
+                    <td data-label="Name" data-card-title>
                       <div>{item.name}</div>
                       <div className="muted">{item.description || '—'}</div>
                     </td>
-                    <td className="muted">{item.location_name || item.location_id?.slice(0, 8)}</td>
-                    <td>
+                    <td className="muted" data-label="Location">{item.location_name || item.location_id?.slice(0, 8)}</td>
+                    <td data-label="Active">
                       <span className={`badge ${item.is_active !== false ? 'badge-ok' : 'badge-danger'}`}>
                         {item.is_active !== false ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td>
+                    <td data-actions>
                       {isAdmin ? (
                         <div className="row-actions">
                           <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>

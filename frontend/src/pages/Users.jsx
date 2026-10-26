@@ -179,7 +179,7 @@ export default function Users() {
           ) : items.length === 0 ? (
             <EmptyState message="No users found." />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -192,15 +192,15 @@ export default function Users() {
               <tbody>
                 {items.map((user) => (
                   <tr key={user.id}>
-                    <td>{user.full_name}</td>
-                    <td className="muted">{user.institute_email}</td>
-                    <td className="muted">{user.roll_no}</td>
-                    <td>
+                    <td data-label="Name" data-card-title>{user.full_name}</td>
+                    <td className="muted" data-label="Email">{user.institute_email}</td>
+                    <td className="muted" data-label="Roll">{user.roll_no}</td>
+                    <td data-label="Active">
                       <span className={`badge ${user.is_active !== false ? 'badge-ok' : 'badge-danger'}`}>
                         {user.is_active !== false ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td>
+                    <td data-actions>
                       <div className="row-actions">
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => openRoles(user)}>
                           Roles
@@ -424,7 +424,7 @@ export default function Users() {
             {roles.length === 0 ? (
               <EmptyState message="No roles assigned." />
             ) : (
-              <table>
+              <table className="responsive-table">
                 <thead>
                   <tr>
                     <th>Role</th>
@@ -435,9 +435,9 @@ export default function Users() {
                 <tbody>
                   {roles.map((role) => (
                     <tr key={role.id}>
-                      <td>{role.role}</td>
-                      <td className="muted">{role.position_title || role.academic_year || '—'}</td>
-                      <td>
+                      <td data-label="Role" data-card-title>{role.role}</td>
+                      <td className="muted" data-label="Title">{role.position_title || role.academic_year || '—'}</td>
+                      <td data-actions>
                         <button
                           type="button"
                           className="btn btn-danger btn-sm"

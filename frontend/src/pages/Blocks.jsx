@@ -109,7 +109,7 @@ export default function Blocks() {
           ) : items.length === 0 ? (
             <EmptyState message="No borrower blocks." />
           ) : (
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>User</th>
@@ -122,18 +122,18 @@ export default function Blocks() {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td>
+                    <td data-label="User" data-card-title>
                       <div>{item.user_name || item.user_id?.slice(0, 8)}</div>
                       <div className="muted">{item.user_email || ''}</div>
                     </td>
-                    <td className="muted">{item.reason}</td>
-                    <td className="muted">{item.blocked_until || 'Indefinite'}</td>
-                    <td>
+                    <td className="muted" data-label="Reason">{item.reason}</td>
+                    <td className="muted" data-label="Until">{item.blocked_until || 'Indefinite'}</td>
+                    <td data-label="Active">
                       <span className={`badge ${item.is_active ? 'badge-danger' : 'badge-ok'}`}>
                         {item.is_active ? 'Active' : 'Lifted'}
                       </span>
                     </td>
-                    <td>
+                    <td data-actions>
                       <div className="row-actions">
                         {item.is_active ? (
                           <button
