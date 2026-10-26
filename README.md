@@ -91,11 +91,11 @@ Copy `.env.example` to create your local `.env`:
 cp .env.example .env
 ```
 
-Ensure your `.env` contains valid credentials:
+Ensure your `.env` contains valid credentials matching your PostgreSQL database:
 
 ```ini
 PORT=3000
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/inventory_db
+DATABASE_URL=postgres://berm_app:change_me@localhost:5432/berm_inventory
 PASETO_V3_LOCAL_KEY_BASE64=<your-base64-key>
 ACCESS_TOKEN_EXPIRY=15m
 REFRESH_TOKEN_EXPIRY=7d
@@ -107,7 +107,32 @@ To generate a secure 32-byte PASETO key in base64:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-### 2. Install Dependencies
+### 2. Database Setup (PostgreSQL)
+
+You can run PostgreSQL locally using either Docker or a native PostgreSQL installation:
+
+#### Option A: Run with Docker Compose (Recommended)
+Make sure Docker Desktop or Docker daemon is running, then start the container:
+
+```bash
+docker compose up -d
+```
+This automatically starts a PostgreSQL 16 instance with:
+- **Database:** `berm_inventory`
+- **User:** `berm_app`
+- **Password:** `change_me`
+- **Port:** `5432`
+
+#### Option B: Native PostgreSQL
+If you already have PostgreSQL running natively:
+
+```sql
+CREATE USER berm_app WITH PASSWORD 'change_me';
+CREATE DATABASE berm_inventory OWNER berm_app;
+GRANT ALL PRIVILEGES ON DATABASE berm_inventory TO berm_app;
+```
+
+### 3. Install Dependencies
 
 Install root backend dependencies:
 ```bash
@@ -119,7 +144,7 @@ Install frontend dependencies:
 npm --prefix frontend install
 ```
 
-### 3. Database Migration & Seeding
+### 4. Database Migration & Seeding
 
 Run database migrations:
 ```bash
