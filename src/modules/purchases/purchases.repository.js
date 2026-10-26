@@ -67,6 +67,11 @@ export async function list(filters = {}) {
     conditions.push(`p.org_unit_id = $${paramCount}`);
     values.push(filters.org_unit_id);
   }
+  if (filters.org_unit_ids) {
+    paramCount++;
+    conditions.push(`p.org_unit_id = ANY($${paramCount}::uuid[])`);
+    values.push(filters.org_unit_ids);
+  }
 
   if (filters.payment_status) {
     paramCount++;

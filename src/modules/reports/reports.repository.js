@@ -1,18 +1,25 @@
 import { pool } from '../../db/pool.js';
 
 // Dashboard queries
-export async function getDashboardSummary() {
+export async function getDashboardSummary(borrowerId = null, orgIds = null) {
   const { rows } = await pool.query(`
     SELECT
-      (SELECT COUNT(*) FROM assets) as total_assets,
-      (SELECT COUNT(*) FROM issues WHERE status IN ('active', 'dropped')) as active_issues,
-      (SELECT COUNT(*) FROM issues WHERE status IN ('active', 'dropped') AND due_at < NOW()) as overdue_count,
-      (SELECT COUNT(*) FROM assets WHERE quantity <= low_stock_threshold) as low_stock_count,
-      (SELECT COUNT(*) FROM assets WHERE status = 'in_maintenance') as open_maintenance,
+      (SELECT COUNT(*) FROM assets WHERE ($2::uuid[] IS NULL OR owner_org_id = ANY($2))) as total_assets,
+      (SELECT COUNT(*) FROM issues i JOIN assets a ON a.id = i.asset_id
+       WHERE i.status IN ('active', 'dropped') AND ($1::uuid IS NULL OR i.borrower_id = $1)
+         AND ($2::uuid[] IS NULL OR a.owner_org_id = ANY($2))) as active_issues,
+      (SELECT COUNT(*) FROM issues i JOIN assets a ON a.id = i.asset_id
+       WHERE i.status IN ('active', 'dropped') AND i.due_at < NOW()
+         AND ($1::uuid IS NULL OR i.borrower_id = $1)
+         AND ($2::uuid[] IS NULL OR a.owner_org_id = ANY($2))) as overdue_count,
+      (SELECT COUNT(*) FROM assets WHERE quantity <= low_stock_threshold
+       AND ($2::uuid[] IS NULL OR owner_org_id = ANY($2))) as low_stock_count,
+      (SELECT COUNT(*) FROM assets WHERE status = 'in_maintenance'
+       AND ($2::uuid[] IS NULL OR owner_org_id = ANY($2))) as open_maintenance,
       0 as pending_verifications,
       0 as pending_disposals,
       0 as active_alerts
-  `);
+  `, [borrowerId, orgIds]);
   
   return rows[0];
 }
@@ -47,6 +54,11 @@ export async function getAssetInventory(filters) {
     paramCount++;
     conditions.push(`a.owner_org_id = $${paramCount}`);
     values.push(filters.org_unit_id);
+  }
+  if (filters.org_unit_ids) {
+    paramCount++;
+    conditions.push(`a.owner_org_id = ANY($${paramCount}::uuid[])`);
+    values.push(filters.org_unit_ids);
   }
 
   if (filters.category_id) {
@@ -84,6 +96,12 @@ export async function getBorrowingHistory(filters) {
     paramCount++;
     conditions.push(`i.borrower_id = $${paramCount}`);
     values.push(filters.user_id);
+  }
+
+  if (filters.org_unit_ids) {
+    paramCount++;
+    conditions.push(`a.owner_org_id = ANY($${paramCount}::uuid[])`);
+    values.push(filters.org_unit_ids);
   }
 
   if (filters.date_from) {
@@ -131,6 +149,11 @@ export async function getOverdueLoans(filters) {
     conditions.push(`a.owner_org_id = $${paramCount}`);
     values.push(filters.org_unit_id);
   }
+  if (filters.org_unit_ids) {
+    paramCount++;
+    conditions.push(`a.owner_org_id = ANY($${paramCount}::uuid[])`);
+    values.push(filters.org_unit_ids);
+  }
 
   const { rows } = await pool.query(`
     SELECT 
@@ -157,14 +180,19 @@ export async function getMaintenanceCosts(filters) {
 
   if (filters.date_from) {
     paramCount++;
-    conditions.push(`created_at >= $${paramCount}::date`);
+    conditions.push(`m.created_at >= $${paramCount}::date`);
     values.push(filters.date_from);
   }
 
   if (filters.date_to) {
     paramCount++;
-    conditions.push(`created_at < ($${paramCount}::date + interval '1 day')`);
+    conditions.push(`m.created_at < ($${paramCount}::date + interval '1 day')`);
     values.push(filters.date_to);
+  }
+  if (filters.org_unit_ids) {
+    paramCount++;
+    conditions.push(`a.owner_org_id = ANY($${paramCount}::uuid[])`);
+    values.push(filters.org_unit_ids);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -172,12 +200,13 @@ export async function getMaintenanceCosts(filters) {
   const { rows } = await pool.query(`
     SELECT 
       COUNT(*) as total_maintenance_records,
-      COALESCE(SUM(CASE WHEN cost IS NOT NULL THEN 1 ELSE 0 END), 0) as records_with_cost,
-      COALESCE(SUM(cost), 0) as total_cost,
-      COALESCE(AVG(cost), 0) as average_cost,
-      COALESCE(MIN(cost), 0) as min_cost,
-      COALESCE(MAX(cost), 0) as max_cost
-    FROM maintenance_records
+      COALESCE(SUM(CASE WHEN m.cost IS NOT NULL THEN 1 ELSE 0 END), 0) as records_with_cost,
+      COALESCE(SUM(m.cost), 0) as total_cost,
+      COALESCE(AVG(m.cost), 0) as average_cost,
+      COALESCE(MIN(m.cost), 0) as min_cost,
+      COALESCE(MAX(m.cost), 0) as max_cost
+    FROM maintenance_records m
+    JOIN assets a ON a.id = m.asset_id
     ${whereClause}
   `, values);
 
@@ -191,14 +220,19 @@ export async function getDisposalSummary(filters) {
 
   if (filters.date_from) {
     paramCount++;
-    conditions.push(`created_at >= $${paramCount}::date`);
+    conditions.push(`d.created_at >= $${paramCount}::date`);
     values.push(filters.date_from);
   }
 
   if (filters.date_to) {
     paramCount++;
-    conditions.push(`created_at < ($${paramCount}::date + interval '1 day')`);
+    conditions.push(`d.created_at < ($${paramCount}::date + interval '1 day')`);
     values.push(filters.date_to);
+  }
+  if (filters.org_unit_ids) {
+    paramCount++;
+    conditions.push(`a.owner_org_id = ANY($${paramCount}::uuid[])`);
+    values.push(filters.org_unit_ids);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -206,12 +240,13 @@ export async function getDisposalSummary(filters) {
   const { rows } = await pool.query(`
     SELECT 
       COUNT(*) as total_disposals,
-      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-      SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
-      SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
-      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-      COALESCE(SUM(salvage_value), 0) as total_salvage_value
-    FROM disposals
+      SUM(CASE WHEN d.status = 'pending' THEN 1 ELSE 0 END) as pending,
+      SUM(CASE WHEN d.status = 'approved' THEN 1 ELSE 0 END) as approved,
+      SUM(CASE WHEN d.status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+      SUM(CASE WHEN d.status = 'completed' THEN 1 ELSE 0 END) as completed,
+      COALESCE(SUM(d.salvage_value), 0) as total_salvage_value
+    FROM disposals d
+    JOIN assets a ON a.id = d.asset_id
     ${whereClause}
   `, values);
 
@@ -238,8 +273,9 @@ export async function getVerificationProgress(filters) {
     LEFT JOIN assets a ON a.owner_org_id = vc.org_unit_id
     LEFT JOIN verifications v ON v.cycle_id = vc.id AND v.asset_id = a.id
     WHERE vc.id = $1
+      AND ($2::uuid[] IS NULL OR vc.org_unit_id = ANY($2))
     GROUP BY vc.id, vc.name, vc.status, vc.starts_on, vc.ends_on
-  `, [filters.cycle_id]);
+  `, [filters.cycle_id, filters.org_unit_ids || null]);
 
   return rows[0] || null;
 }
@@ -253,6 +289,11 @@ export async function getAssetUtilization(filters) {
     paramCount++;
     conditions.push(`a.owner_org_id = $${paramCount}`);
     values.push(filters.org_unit_id);
+  }
+  if (filters.org_unit_ids) {
+    paramCount++;
+    conditions.push(`a.owner_org_id = ANY($${paramCount}::uuid[])`);
+    values.push(filters.org_unit_ids);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

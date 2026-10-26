@@ -3,9 +3,11 @@ import { Router } from 'express';
 import { validate } from '../../middleware/validate.js';
 import { createRoleSchema, updateRoleSchema, roleIdSchema } from './roles.schemas.js';
 import * as controller from './roles.controller.js';
+import { requireSuperAdmin } from '../../middleware/authorize.js';
 
 const router = Router({ mergeParams: true }); // mergeParams to access :id from parent router
 
+router.use(requireSuperAdmin);
 router.get('/', controller.listUserRoles);
 router.post('/', validate(createRoleSchema, 'body'), controller.createRole);
 router.patch('/:roleId', validate(roleIdSchema, 'params'), validate(updateRoleSchema, 'body'), controller.updateRole);

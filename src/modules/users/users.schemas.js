@@ -8,6 +8,7 @@ export const createUserSchema = z.object({
   phone: z.string().optional(),
   programme: z.string().optional(),
   password: z.string().min(8),
+  org_unit_id: z.string().uuid().optional(),
 });
 
 export const listUsersSchema = z.object({

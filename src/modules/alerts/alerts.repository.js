@@ -38,6 +38,10 @@ export async function findAlerts({ filters, limit, offset, sort = 'created_at DE
     conditions.push(`org_unit_id = $${paramCount++}`);
     params.push(filters.org_unit_id);
   }
+  if (filters.org_unit_ids) {
+    conditions.push(`org_unit_id = ANY($${paramCount++}::uuid[])`);
+    params.push(filters.org_unit_ids);
+  }
 
   if (filters.entity_type) {
     conditions.push(`entity_type = $${paramCount++}`);
@@ -278,6 +282,10 @@ export async function getAlertSummary(filters = {}) {
   if (filters.org_unit_id) {
     conditions.push(`org_unit_id = $${paramCount++}`);
     params.push(filters.org_unit_id);
+  }
+  if (filters.org_unit_ids) {
+    conditions.push(`org_unit_id = ANY($${paramCount++}::uuid[])`);
+    params.push(filters.org_unit_ids);
   }
 
   if (filters.date_from) {

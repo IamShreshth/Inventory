@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import StatusBadge from '../components/StatusBadge'
+import { useAuth } from '../auth/AuthContext'
 
 const emptyForm = {
   name: '',
@@ -20,6 +21,7 @@ const emptyForm = {
 }
 
 export default function Assets() {
+  const { isAdmin } = useAuth()
   const [items, setItems] = useState([])
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 })
   const [categories, setCategories] = useState([])
@@ -190,9 +192,11 @@ export default function Assets() {
           <button type="button" className="btn btn-ghost" onClick={handleExport}>
             Export CSV
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>
-            Add asset
-          </button>
+          {isAdmin ? (
+            <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>
+              Add asset
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -231,7 +235,7 @@ export default function Assets() {
           {loading ? (
             <div className="loading">Loading assets…</div>
           ) : items.length === 0 ? (
-            <EmptyState message="No assets found. Add one to get started." />
+            <EmptyState message={isAdmin ? 'No assets found. Add one to get started.' : 'No assets found.'} />
           ) : (
             <table>
               <thead>
@@ -263,23 +267,27 @@ export default function Assets() {
                     <td className="muted">{asset.tracking}</td>
                     <td>
                       <div className="row-actions">
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(asset)}>
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => handleGenerateQr(asset.id)}
-                        >
-                          QR
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDelete(asset.id)}
-                        >
-                          Delete
-                        </button>
+                        {isAdmin ? (
+                          <>
+                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(asset)}>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => handleGenerateQr(asset.id)}
+                            >
+                              QR
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleDelete(asset.id)}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        ) : null}
                       </div>
                     </td>
                   </tr>

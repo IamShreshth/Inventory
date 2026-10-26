@@ -1,5 +1,6 @@
 // src/modules/users/users.controller.js
 import * as userService from './users.service.js';
+import { isAdmin, scopeOrgFilters } from '../../middleware/authorize.js';
 
 export async function createUser(req, res, next) {
   try {
@@ -13,7 +14,10 @@ export async function createUser(req, res, next) {
 export async function listUsers(req, res, next) {
   try {
     const { page, limit, q } = req.validated.query;
-    const result = await userService.listUsers({ limit, offset: (page - 1) * limit, q });
+    const filters = isAdmin(req.user)
+      ? scopeOrgFilters(req.user, { limit, offset: (page - 1) * limit, q })
+      : { limit, offset: (page - 1) * limit, q };
+    const result = await userService.listUsers(filters);
     res.status(200).json({
       data: result.rows,
       meta: { page, limit, total: result.total, pages: Math.ceil(result.total / limit) },

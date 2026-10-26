@@ -8,17 +8,17 @@ const links = [
   { to: '/transfers', label: 'Transfers' },
   { to: '/alerts', label: 'Alerts' },
   { to: '/catalog', label: 'Catalog' },
-  { to: '/vendors', label: 'Vendors' },
+  { to: '/vendors', label: 'Vendors', adminOnly: true },
   { to: '/purchases', label: 'Purchases' },
   { to: '/drop-boxes', label: 'Drop boxes' },
-  { to: '/users', label: 'Users' },
-  { to: '/blocks', label: 'Blocks' },
-  { to: '/reports', label: 'Reports' },
-  { to: '/audit-log', label: 'Audit log' },
+  { to: '/users', label: 'Users', adminOnly: true },
+  { to: '/blocks', label: 'Borrower blocks', adminOnly: true },
+  { to: '/reports', label: 'Reports', adminOnly: true },
+  { to: '/audit-log', label: 'Audit log', auditAccessOnly: true },
 ]
 
 export default function Layout() {
-  const { user, logout } = useAuth()
+  const { user, logout, isAdmin, canViewAuditLog } = useAuth()
 
   return (
     <div className="app-shell">
@@ -28,7 +28,7 @@ export default function Layout() {
           <span>BERM equipment desk</span>
         </div>
         <nav className="nav">
-          {links.map((link) => (
+          {links.filter((link) => (!link.adminOnly || isAdmin) && (!link.auditAccessOnly || canViewAuditLog)).map((link) => (
             <NavLink key={link.to} to={link.to} end={link.end}>
               {link.label}
             </NavLink>

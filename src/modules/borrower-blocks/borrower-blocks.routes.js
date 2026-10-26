@@ -9,15 +9,21 @@ import {
   listBlocksSchema,
 } from './borrower-blocks.schemas.js';
 import * as controller from './borrower-blocks.controller.js';
+import {
+  requireAdmin,
+  requireScopedBodyResource,
+  requireScopedResource,
+} from '../../middleware/authorize.js';
 
 const router = Router();
+router.use(requireAdmin);
 
 // CRUD routes
 router.get('/', validate(listBlocksSchema, 'query'), controller.listBorrowerBlocks);
-router.post('/', validate(createBlockSchema, 'body'), controller.createBorrowerBlock);
-router.get('/active/:userId', validate(userIdSchema, 'params'), controller.getActiveBlocksForUser);
-router.get('/:id', validate(blockIdSchema, 'params'), controller.getBlockById);
-router.patch('/:id', validate(blockIdSchema, 'params'), validate(updateBlockSchema, 'body'), controller.updateBorrowerBlock);
-router.delete('/:id', validate(blockIdSchema, 'params'), controller.deleteBorrowerBlock);
+router.post('/', validate(createBlockSchema, 'body'), requireScopedBodyResource('user', 'user_id'), requireScopedBodyResource('issue', 'issue_id'), controller.createBorrowerBlock);
+router.get('/active/:userId', validate(userIdSchema, 'params'), requireScopedResource('user', 'userId'), controller.getActiveBlocksForUser);
+router.get('/:id', validate(blockIdSchema, 'params'), requireScopedResource('block'), controller.getBlockById);
+router.patch('/:id', validate(blockIdSchema, 'params'), requireScopedResource('block'), validate(updateBlockSchema, 'body'), controller.updateBorrowerBlock);
+router.delete('/:id', validate(blockIdSchema, 'params'), requireScopedResource('block'), controller.deleteBorrowerBlock);
 
 export default router;

@@ -1,9 +1,13 @@
 // src/modules/issues/issues.controller.js
 import * as issuesService from './issues.service.js';
+import { getAdminOrgIds, isAdmin } from '../../middleware/authorize.js';
 
 export async function createIssue(req, res, next) {
   try {
-    const issue = await issuesService.createIssue(req.validated.body, req.user.id);
+    const issueData = isAdmin(req.user)
+      ? req.validated.body
+      : { ...req.validated.body, borrower_id: req.user.id };
+    const issue = await issuesService.createIssue(issueData, req.user.id);
     res.status(201).json({ data: issue });
   } catch (error) {
     next(error);
@@ -15,6 +19,10 @@ export async function listIssues(req, res, next) {
     const { page, limit, ...filters } = req.validated.query;
     const offset = (page - 1) * limit;
     
+    if (req.user.roles.some((role) => role.role === 'borrower') && !isAdmin(req.user)) {
+      filters.borrower_id = req.user.id;
+    }
+    if (isAdmin(req.user)) filters.org_unit_ids = getAdminOrgIds(req.user);
     const result = await issuesService.listIssues({ limit, offset, filters });
     
     res.status(200).json({
@@ -127,7 +135,11 @@ export async function renewIssue(req, res, next) {
 
 export async function getOverdueIssues(req, res, next) {
   try {
-    const issues = await issuesService.getOverdueIssues();
+    const isBorrower = req.user.roles.some((role) => role.role === 'borrower') && !isAdmin(req.user);
+    const issues = await issuesService.getOverdueIssues(
+      isBorrower ? req.user.id : null,
+      isAdmin(req.user) ? getAdminOrgIds(req.user) : null
+    );
     res.status(200).json({ data: issues });
   } catch (error) {
     next(error);
@@ -136,7 +148,7 @@ export async function getOverdueIssues(req, res, next) {
 
 export async function getDroppedIssues(req, res, next) {
   try {
-    const issues = await issuesService.getDroppedIssues();
+    const issues = await issuesService.getDroppedIssues(getAdminOrgIds(req.user));
     res.status(200).json({ data: issues });
   } catch (error) {
     next(error);
@@ -145,6 +157,9 @@ export async function getDroppedIssues(req, res, next) {
 
 export async function directReturnIssue(req, res, next) {
   try {
+    if (!isAdmin(req.user)) {
+      return res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Only an administrator can receive returned assets', details: [] } });
+    }
     const receivedBy = req.validated.body.received_by || req.user.id;
     const issue = await issuesService.directReturn(
       req.validated.params.id,

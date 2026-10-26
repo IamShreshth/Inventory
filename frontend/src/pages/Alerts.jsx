@@ -4,8 +4,10 @@ import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import StatusBadge from '../components/StatusBadge'
+import { useAuth } from '../auth/AuthContext'
 
 export default function Alerts() {
+  const { isAdmin, isSuperAdmin } = useAuth()
   const [items, setItems] = useState([])
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 })
   const [status, setStatus] = useState('open')
@@ -86,27 +88,33 @@ export default function Alerts() {
           <h1>Alerts</h1>
           <p>Stock, overdue, and system notifications.</p>
         </div>
-        <div className="row-actions">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            disabled={busy}
-            onClick={() => runAction(() => alertsApi.autoResolve())}
-          >
-            Auto-resolve
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            disabled={busy}
-            onClick={() => runAction(() => alertsApi.generate())}
-          >
-            Generate alerts
-          </button>
-          <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>
-            Create alert
-          </button>
-        </div>
+        {isAdmin ? (
+          <div className="row-actions">
+            {isSuperAdmin ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={busy}
+                  onClick={() => runAction(() => alertsApi.autoResolve())}
+                >
+                  Auto-resolve
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={busy}
+                  onClick={() => runAction(() => alertsApi.generate())}
+                >
+                  Generate alerts
+                </button>
+              </>
+            ) : null}
+            <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>
+              Create alert
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
@@ -166,7 +174,7 @@ export default function Alerts() {
                     </td>
                     <td>
                       <div className="row-actions">
-                        {alert.status === 'open' ? (
+                        {isAdmin && alert.status === 'open' ? (
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
@@ -176,7 +184,7 @@ export default function Alerts() {
                             Ack
                           </button>
                         ) : null}
-                        {alert.status === 'open' || alert.status === 'acknowledged' ? (
+                        {isAdmin && (alert.status === 'open' || alert.status === 'acknowledged') ? (
                           <>
                             <button
                               type="button"
@@ -207,7 +215,7 @@ export default function Alerts() {
         <Pagination pagination={pagination} onChange={setPage} />
       </div>
 
-      {showCreate ? (
+      {showCreate && isAdmin ? (
         <Modal
           title="Create alert"
           onClose={() => setShowCreate(false)}

@@ -106,6 +106,11 @@ export async function list(filters = {}) {
     conditions.push(`a.owner_org_id = $${paramCount}`);
     values.push(filters.owner_org_id);
   }
+  if (filters.owner_org_ids) {
+    paramCount++;
+    conditions.push(`a.owner_org_id = ANY($${paramCount}::uuid[])`);
+    values.push(filters.owner_org_ids);
+  }
 
   // Location filter
   if (filters.location_id) {
@@ -286,6 +291,11 @@ export async function exportAssets(filters = {}) {
     paramCount++;
     conditions.push(`a.owner_org_id = $${paramCount}`);
     values.push(filters.owner_org_id);
+  }
+  if (filters.owner_org_ids) {
+    paramCount++;
+    conditions.push(`a.owner_org_id = ANY($${paramCount}::uuid[])`);
+    values.push(filters.owner_org_ids);
   }
 
   if (filters.location_id) {

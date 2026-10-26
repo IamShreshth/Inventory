@@ -4,8 +4,10 @@ import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import StatusBadge from '../components/StatusBadge'
+import { useAuth } from '../auth/AuthContext'
 
 export default function Transfers() {
+  const { isAdmin } = useAuth()
   const [items, setItems] = useState([])
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 })
   const [assets, setAssets] = useState([])
@@ -124,9 +126,11 @@ export default function Transfers() {
           <h1>Transfers</h1>
           <p>Move assets between orgs and locations.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>
-          Request transfer
-        </button>
+        {isAdmin ? (
+          <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>
+            Request transfer
+          </button>
+        ) : null}
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
@@ -185,7 +189,7 @@ export default function Transfers() {
                     <td className="muted">{item.reason || '—'}</td>
                     <td>
                       <div className="row-actions">
-                        {item.status === 'requested' ? (
+                        {isAdmin && item.status === 'requested' ? (
                           <>
                             <button
                               type="button"
@@ -216,7 +220,7 @@ export default function Transfers() {
                             </button>
                           </>
                         ) : null}
-                        {item.status === 'approved' ? (
+                        {isAdmin && item.status === 'approved' ? (
                           <button
                             type="button"
                             className="btn btn-primary btn-sm"
@@ -236,7 +240,7 @@ export default function Transfers() {
         <Pagination pagination={pagination} onChange={setPage} />
       </div>
 
-      {showCreate ? (
+      {showCreate && isAdmin ? (
         <Modal
           title="Request transfer"
           onClose={() => setShowCreate(false)}
@@ -356,7 +360,7 @@ export default function Transfers() {
         </Modal>
       ) : null}
 
-      {rejectModal ? (
+      {rejectModal && isAdmin ? (
         <Modal
           title="Reject transfer"
           onClose={() => setRejectModal(null)}
@@ -380,7 +384,7 @@ export default function Transfers() {
         </Modal>
       ) : null}
 
-      {cancelModal ? (
+      {cancelModal && isAdmin ? (
         <Modal
           title="Cancel transfer"
           onClose={() => setCancelModal(null)}

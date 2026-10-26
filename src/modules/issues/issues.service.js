@@ -428,12 +428,12 @@ export async function renewIssue(issueId, renewalData, requestedBy) {
   });
 }
 
-export async function getOverdueIssues() {
-  return issuesRepository.getOverdueIssues();
+export async function getOverdueIssues(borrowerId = null, orgUnitIds = null) {
+  return issuesRepository.getOverdueIssues(borrowerId, orgUnitIds);
 }
 
-export async function getDroppedIssues() {
-  return issuesRepository.getDroppedIssues();
+export async function getDroppedIssues(orgUnitIds = null) {
+  return issuesRepository.getDroppedIssues(orgUnitIds);
 }
 
 /**

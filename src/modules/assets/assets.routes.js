@@ -10,8 +10,16 @@ import {
   exportQuerySchema
 } from './assets.schemas.js';
 import * as controller from './assets.controller.js';
+import {
+  assignAdminOrg,
+  requireAdmin,
+  requireReadAccess,
+  requireScopedBodyResource,
+  requireScopedResource,
+} from '../../middleware/authorize.js';
 
 const router = Router();
+router.use(requireReadAccess);
 
 // List and export
 router.get('/', validate(listQuerySchema, 'query'), controller.list);
@@ -21,13 +29,13 @@ router.get('/export', validate(exportQuerySchema, 'query'), controller.exportAss
 router.get('/qr/:qrToken', validate(qrTokenSchema, 'params'), controller.resolveQRToken);
 
 // CRUD operations
-router.post('/', validate(createAssetSchema, 'body'), controller.create);
-router.post('/batch-create', validate(batchCreateSchema, 'body'), controller.batchCreate);
-router.get('/:id', validate(idSchema, 'params'), controller.getById);
-router.patch('/:id', validate(idSchema, 'params'), validate(updateAssetSchema, 'body'), controller.update);
-router.delete('/:id', validate(idSchema, 'params'), controller.deleteById);
+router.post('/', requireAdmin, validate(createAssetSchema, 'body'), assignAdminOrg('owner_org_id'), requireScopedBodyResource('location', 'location_id'), controller.create);
+router.post('/batch-create', requireAdmin, validate(batchCreateSchema, 'body'), assignAdminOrg('owner_org_id', 'assets'), controller.batchCreate);
+router.get('/:id', validate(idSchema, 'params'), requireScopedResource('asset'), controller.getById);
+router.patch('/:id', requireAdmin, validate(idSchema, 'params'), requireScopedResource('asset'), validate(updateAssetSchema, 'body'), controller.update);
+router.delete('/:id', requireAdmin, validate(idSchema, 'params'), requireScopedResource('asset'), controller.deleteById);
 
 // QR token generation
-router.post('/:id/qr', validate(idSchema, 'params'), controller.generateQRToken);
+router.post('/:id/qr', requireAdmin, validate(idSchema, 'params'), requireScopedResource('asset'), controller.generateQRToken);
 
 export default router;

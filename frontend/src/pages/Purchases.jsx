@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import StatusBadge from '../components/StatusBadge'
+import { useAuth } from '../auth/AuthContext'
 
 const emptyForm = {
   purchase_order_no: '',
@@ -19,6 +20,7 @@ const emptyForm = {
 }
 
 export default function Purchases() {
+  const { isAdmin } = useAuth()
   const [items, setItems] = useState([])
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 })
   const [vendors, setVendors] = useState([])
@@ -154,9 +156,11 @@ export default function Purchases() {
           <h1>Purchases</h1>
           <p>Purchase orders and line items.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>
-          New purchase
-        </button>
+        {isAdmin ? (
+          <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>
+            New purchase
+          </button>
+        ) : null}
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
@@ -216,13 +220,15 @@ export default function Purchases() {
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => openDetail(item)}>
                           Items
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          Delete
-                        </button>
+                        {isAdmin ? (
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            Delete
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -234,7 +240,7 @@ export default function Purchases() {
         <Pagination pagination={pagination} onChange={setPage} />
       </div>
 
-      {showCreate ? (
+      {showCreate && isAdmin ? (
         <Modal
           title="New purchase"
           onClose={() => setShowCreate(false)}
@@ -349,7 +355,8 @@ export default function Purchases() {
             </button>
           }
         >
-          <form className="form" onSubmit={handleAddItem}>
+          {isAdmin ? (
+            <form className="form" onSubmit={handleAddItem}>
             <div className="field">
               <label htmlFor="item_description">Description</label>
               <input
@@ -387,7 +394,8 @@ export default function Purchases() {
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? 'Adding…' : 'Add item'}
             </button>
-          </form>
+            </form>
+          ) : null}
           <div className="table-wrap" style={{ marginTop: '1rem' }}>
             {detailItems.length === 0 ? (
               <EmptyState message="No line items yet." />
@@ -408,13 +416,15 @@ export default function Purchases() {
                       <td>{row.quantity}</td>
                       <td>{row.unit_price}</td>
                       <td>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDeleteItem(row.id)}
-                        >
-                          Remove
-                        </button>
+                        {isAdmin ? (
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDeleteItem(row.id)}
+                          >
+                            Remove
+                          </button>
+                        ) : null}
                       </td>
                     </tr>
                   ))}

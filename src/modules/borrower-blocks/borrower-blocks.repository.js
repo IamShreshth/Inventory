@@ -40,6 +40,20 @@ export async function listBorrowerBlocks({ filters = {} }) {
     values.push(filters.blocked_until);
     conditions.push(`bb.blocked_until = $${paramCount}`);
   }
+  if (filters.org_unit_ids) {
+    paramCount++;
+    values.push(filters.org_unit_ids);
+    conditions.push(`(
+      EXISTS (
+        SELECT 1 FROM user_roles ur
+        WHERE ur.user_id = bb.user_id AND ur.org_unit_id = ANY($${paramCount}::uuid[])
+      )
+      OR EXISTS (
+        SELECT 1 FROM issues i JOIN assets a ON a.id = i.asset_id
+        WHERE i.id = bb.issue_id AND a.owner_org_id = ANY($${paramCount}::uuid[])
+      )
+    )`);
+  }
 
   const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 

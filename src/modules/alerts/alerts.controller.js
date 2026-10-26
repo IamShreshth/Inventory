@@ -1,5 +1,6 @@
 // src/modules/alerts/alerts.controller.js
 import * as alertsService from './alerts.service.js';
+import { isAdmin, scopeOrgFilters } from '../../middleware/authorize.js';
 
 /**
  * List alerts with filters and pagination
@@ -10,7 +11,8 @@ export async function listAlerts(req, res, next) {
     const { page, limit, sort, ...filters } = req.validated.query;
     const offset = (page - 1) * limit;
 
-    const result = await alertsService.listAlerts({ limit, offset, filters, sort });
+    const scopedFilters = isAdmin(req.user) ? scopeOrgFilters(req.user, filters) : filters;
+    const result = await alertsService.listAlerts({ limit, offset, filters: scopedFilters, sort });
 
     res.status(200).json({
       data: result.rows,
@@ -121,7 +123,8 @@ export async function dismissAlert(req, res, next) {
 export async function getAlertSummary(req, res, next) {
   try {
     const filters = req.validated.query || {};
-    const summary = await alertsService.getAlertSummary(filters);
+    const scopedFilters = isAdmin(req.user) ? scopeOrgFilters(req.user, filters) : filters;
+    const summary = await alertsService.getAlertSummary(scopedFilters);
     res.status(200).json({ data: summary });
   } catch (error) {
     next(error);

@@ -1,4 +1,5 @@
 import * as service from './assets.service.js';
+import { isAdmin, scopeOrgFilters } from '../../middleware/authorize.js';
 
 export async function create(req, res, next) {
   try {
@@ -29,7 +30,10 @@ export async function getById(req, res, next) {
 
 export async function list(req, res, next) {
   try {
-    const result = await service.list(req.validated.query);
+    const filters = isAdmin(req.user)
+      ? scopeOrgFilters(req.user, req.validated.query, 'owner_org_ids')
+      : req.validated.query;
+    const result = await service.list(filters);
     res.status(200).json({ 
       data: result.items,
       meta: { pagination: result.pagination }
@@ -77,7 +81,10 @@ export async function resolveQRToken(req, res, next) {
 
 export async function exportAssets(req, res, next) {
   try {
-    const result = await service.exportAssets(req.validated.query);
+    const filters = isAdmin(req.user)
+      ? scopeOrgFilters(req.user, req.validated.query, 'owner_org_ids')
+      : req.validated.query;
+    const result = await service.exportAssets(filters);
     
     if (req.validated.query.format === 'csv') {
       res.setHeader('Content-Type', 'text/csv');

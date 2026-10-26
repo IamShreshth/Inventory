@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { categoriesApi, locationsApi, orgUnitsApi } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 
@@ -10,6 +11,7 @@ const tabs = [
 ]
 
 export default function Catalog() {
+  const { isAdmin, isSuperAdmin } = useAuth()
   const [tab, setTab] = useState('categories')
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -287,6 +289,7 @@ export default function Catalog() {
       ) : null}
     </>
   )
+  const canManageTab = tab === 'locations' ? isAdmin : isSuperAdmin
 
   return (
     <div>
@@ -295,9 +298,11 @@ export default function Catalog() {
           <h1>Catalog</h1>
           <p>Categories, storage locations, and organization units.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={openCreate}>
-          Add {tabs.find((t) => t.id === tab)?.label.slice(0, -1).toLowerCase()}
-        </button>
+        {canManageTab ? (
+          <button type="button" className="btn btn-primary" onClick={openCreate}>
+            Add {tabs.find((t) => t.id === tab)?.label.slice(0, -1).toLowerCase()}
+          </button>
+        ) : null}
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
@@ -341,16 +346,20 @@ export default function Catalog() {
                     <td>{item.max_renewals}</td>
                     <td>
                       <div className="row-actions">
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          Delete
-                        </button>
+                        {canManageTab ? (
+                          <>
+                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleDelete(item.id)}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -379,16 +388,20 @@ export default function Catalog() {
                     </td>
                     <td>
                       <div className="row-actions">
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          Delete
-                        </button>
+                        {canManageTab ? (
+                          <>
+                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleDelete(item.id)}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -417,16 +430,20 @@ export default function Catalog() {
                     </td>
                     <td>
                       <div className="row-actions">
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          Delete
-                        </button>
+                        {canManageTab ? (
+                          <>
+                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleDelete(item.id)}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -437,7 +454,7 @@ export default function Catalog() {
         </div>
       </div>
 
-      {showCreate ? (
+      {showCreate && canManageTab ? (
         <Modal
           title={`Add ${tabs.find((t) => t.id === tab)?.label.slice(0, -1).toLowerCase()}`}
           onClose={() => setShowCreate(false)}
@@ -458,7 +475,7 @@ export default function Catalog() {
         </Modal>
       ) : null}
 
-      {editItem ? (
+      {editItem && canManageTab ? (
         <Modal
           title={`Edit ${tabs.find((t) => t.id === tab)?.label.slice(0, -1).toLowerCase()}`}
           onClose={() => setEditItem(null)}

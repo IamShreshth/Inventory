@@ -6,8 +6,10 @@ import {
   listQuerySchema 
 } from './audit-log.schemas.js';
 import * as controller from './audit-log.controller.js';
+import { requireRole } from '../../middleware/authorize.js';
 
 const router = Router();
+router.use(requireRole('super_admin', 'org_admin', 'berm_incharge', 'auditor'));
 
 // List audit logs
 router.get('/', validate(listQuerySchema, 'query'), controller.list);

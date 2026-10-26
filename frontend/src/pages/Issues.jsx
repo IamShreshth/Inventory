@@ -4,8 +4,10 @@ import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 import StatusBadge from '../components/StatusBadge'
+import { useAuth } from '../auth/AuthContext'
 
 export default function Issues() {
+  const { isAdmin } = useAuth()
   const [items, setItems] = useState([])
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 })
   const [assets, setAssets] = useState([])
@@ -224,13 +226,15 @@ export default function Issues() {
                       <div className="row-actions">
                         {issue.status === 'requested' ? (
                           <>
-                            <button
-                              type="button"
-                              className="btn btn-primary btn-sm"
-                              onClick={() => handleIssue(issue.id)}
-                            >
-                              Issue
-                            </button>
+                            {isAdmin ? (
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                onClick={() => handleIssue(issue.id)}
+                              >
+                                Issue
+                              </button>
+                            ) : null}
                             <button
                               type="button"
                               className="btn btn-ghost btn-sm"
@@ -272,16 +276,18 @@ export default function Issues() {
                           </>
                         ) : null}
                         {issue.status === 'dropped' ? (
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            onClick={() => {
-                              setReceiveCondition('good')
-                              setReceiveModal(issue.id)
-                            }}
-                          >
-                            Receive
-                          </button>
+                          isAdmin ? (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => {
+                                setReceiveCondition('good')
+                                setReceiveModal(issue.id)
+                              }}
+                            >
+                              Receive
+                            </button>
+                          ) : null
                         ) : null}
                       </div>
                     </td>

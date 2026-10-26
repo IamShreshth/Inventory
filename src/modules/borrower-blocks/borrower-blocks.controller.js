@@ -1,5 +1,6 @@
 // src/modules/borrower-blocks/borrower-blocks.controller.js
 import * as borrowerBlocksService from './borrower-blocks.service.js';
+import { isAdmin, scopeOrgFilters } from '../../middleware/authorize.js';
 
 export async function createBorrowerBlock(req, res, next) {
   try {
@@ -12,7 +13,8 @@ export async function createBorrowerBlock(req, res, next) {
 
 export async function listBorrowerBlocks(req, res, next) {
   try {
-    const filters = req.validated.query || {};
+    const query = req.validated.query || {};
+    const filters = isAdmin(req.user) ? scopeOrgFilters(req.user, query) : query;
     const result = await borrowerBlocksService.listBorrowerBlocks({ filters });
     res.status(200).json({
       data: result.rows,

@@ -1,5 +1,6 @@
 // src/modules/drop-boxes/drop-boxes.controller.js
 import * as dropBoxesService from './drop-boxes.service.js';
+import { isAdmin, scopeOrgFilters } from '../../middleware/authorize.js';
 
 export async function createDropBox(req, res, next) {
   try {
@@ -12,7 +13,8 @@ export async function createDropBox(req, res, next) {
 
 export async function listDropBoxes(req, res, next) {
   try {
-    const filters = req.validated.query || {};
+    const query = req.validated.query || {};
+    const filters = isAdmin(req.user) ? scopeOrgFilters(req.user, query) : query;
     const result = await dropBoxesService.listDropBoxes({ filters });
     res.status(200).json({
       data: result.rows,

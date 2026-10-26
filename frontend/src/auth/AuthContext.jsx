@@ -59,9 +59,13 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const roles = user?.roles?.map((role) => role.role) || []
+  const isAdmin = roles.some((role) => ['super_admin', 'org_admin', 'berm_incharge'].includes(role))
+  const isSuperAdmin = roles.includes('super_admin')
+  const canViewAuditLog = isAdmin || roles.includes('auditor')
   const value = useMemo(
-    () => ({ user, loading, isAuthenticated: !!user, login, register, logout }),
-    [user, loading, login, register, logout]
+    () => ({ user, loading, isAuthenticated: !!user, isAdmin, isSuperAdmin, canViewAuditLog, login, register, logout }),
+    [user, loading, isAdmin, isSuperAdmin, canViewAuditLog, login, register, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

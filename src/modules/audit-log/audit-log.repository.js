@@ -1,5 +1,27 @@
 import { pool } from '../../db/pool.js';
 
+function orgScopeCondition(parameter) {
+  return `(
+    (al.table_name = 'issues' AND EXISTS (
+      SELECT 1 FROM issues i
+      JOIN assets a ON a.id = i.asset_id
+      WHERE i.id = al.record_id
+        AND a.owner_org_id = ANY($${parameter}::uuid[])
+        AND (i.on_behalf_of_org IS NULL OR i.on_behalf_of_org = ANY($${parameter}::uuid[]))
+    ))
+    OR (al.table_name = 'transfers' AND EXISTS (
+      SELECT 1 FROM transfers t
+      JOIN assets a ON a.id = t.asset_id
+      WHERE t.id = al.record_id
+        AND (
+          a.owner_org_id = ANY($${parameter}::uuid[])
+          OR t.from_org_id = ANY($${parameter}::uuid[])
+          OR t.to_org_id = ANY($${parameter}::uuid[])
+        )
+    ))
+  )`;
+}
+
 export async function list(filters = {}) {
   const conditions = [];
   const values = [];
@@ -46,6 +68,12 @@ export async function list(filters = {}) {
     values.push(filters.to_date);
   }
 
+  if (filters.org_unit_ids) {
+    paramCount++;
+    conditions.push(orgScopeCondition(paramCount));
+    values.push(filters.org_unit_ids);
+  }
+
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const { rows } = await pool.query(
@@ -67,19 +95,21 @@ export async function list(filters = {}) {
   };
 }
 
-export async function getById(id) {
+export async function getById(id, orgUnitIds = null) {
+  const scopeCondition = orgUnitIds ? `AND ${orgScopeCondition(2)}` : '';
   const { rows } = await pool.query(
     `SELECT al.*,
             u.full_name as changed_by_name
      FROM audit_log al
      LEFT JOIN users u ON al.changed_by = u.id
-     WHERE al.id = $1`,
-    [id]
+     WHERE al.id = $1 ${scopeCondition}`,
+    orgUnitIds ? [id, orgUnitIds] : [id]
   );
   return rows[0];
 }
 
-export async function getByEntity(entityType, entityId) {
+export async function getByEntity(entityType, entityId, orgUnitIds = null) {
+  const scopeCondition = orgUnitIds ? `AND ${orgScopeCondition(3)}` : '';
   const { rows } = await pool.query(
     `SELECT al.*,
             al.created_at as changed_at,
@@ -87,8 +117,9 @@ export async function getByEntity(entityType, entityId) {
      FROM audit_log al
      LEFT JOIN users u ON al.changed_by = u.id
      WHERE al.table_name = $1 AND al.record_id = $2
+       ${scopeCondition}
      ORDER BY al.created_at DESC`,
-    [entityType, entityId]
+    orgUnitIds ? [entityType, entityId, orgUnitIds] : [entityType, entityId]
   );
   return rows;
 }

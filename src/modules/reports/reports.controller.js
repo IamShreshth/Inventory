@@ -1,9 +1,21 @@
 import * as service from './reports.service.js';
+import { getAdminOrgIds, isAdmin, scopeOrgFilters } from '../../middleware/authorize.js';
+
+function reportFilters(user, query) {
+  if (isAdmin(user)) return scopeOrgFilters(user, query);
+  return query;
+}
 
 // Dashboard endpoints
 export async function getDashboardSummary(req, res, next) {
   try {
-    const summary = await service.getDashboardSummary();
+    const roles = req.user.roles.map((role) => role.role);
+    const borrowerId = roles.includes('borrower') &&
+      !roles.some((role) => ['super_admin', 'org_admin', 'berm_incharge'].includes(role))
+      ? req.user.id
+      : null;
+    const orgIds = isAdmin(req.user) ? getAdminOrgIds(req.user) : null;
+    const summary = await service.getDashboardSummary(borrowerId, orgIds);
     res.status(200).json({ data: summary });
   } catch (error) {
     next(error);
@@ -22,9 +34,10 @@ export async function getOrgDashboard(req, res, next) {
 // Report endpoints
 export async function getAssetInventoryReport(req, res, next) {
   try {
-    const result = await service.getAssetInventoryReport(req.validated.query);
+    const filters = reportFilters(req.user, req.validated.query);
+    const result = await service.getAssetInventoryReport(filters);
     
-    if (req.validated.query.format === 'csv') {
+    if (filters.format === 'csv') {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="asset-inventory-${Date.now()}.csv"`);
       res.status(200).send(result);
@@ -38,7 +51,8 @@ export async function getAssetInventoryReport(req, res, next) {
 
 export async function getBorrowingHistoryReport(req, res, next) {
   try {
-    const result = await service.getBorrowingHistoryReport(req.validated.query);
+    const filters = reportFilters(req.user, req.validated.query);
+    const result = await service.getBorrowingHistoryReport(filters);
     res.status(200).json({ data: result });
   } catch (error) {
     next(error);
@@ -47,7 +61,8 @@ export async function getBorrowingHistoryReport(req, res, next) {
 
 export async function getOverdueLoansReport(req, res, next) {
   try {
-    const result = await service.getOverdueLoansReport(req.validated.query);
+    const filters = reportFilters(req.user, req.validated.query);
+    const result = await service.getOverdueLoansReport(filters);
     res.status(200).json({ data: result });
   } catch (error) {
     next(error);
@@ -56,7 +71,8 @@ export async function getOverdueLoansReport(req, res, next) {
 
 export async function getMaintenanceCostsReport(req, res, next) {
   try {
-    const result = await service.getMaintenanceCostsReport(req.validated.query);
+    const filters = reportFilters(req.user, req.validated.query);
+    const result = await service.getMaintenanceCostsReport(filters);
     res.status(200).json({ data: result });
   } catch (error) {
     next(error);
@@ -65,7 +81,8 @@ export async function getMaintenanceCostsReport(req, res, next) {
 
 export async function getDisposalSummaryReport(req, res, next) {
   try {
-    const result = await service.getDisposalSummaryReport(req.validated.query);
+    const filters = reportFilters(req.user, req.validated.query);
+    const result = await service.getDisposalSummaryReport(filters);
     res.status(200).json({ data: result });
   } catch (error) {
     next(error);
@@ -74,7 +91,8 @@ export async function getDisposalSummaryReport(req, res, next) {
 
 export async function getVerificationProgressReport(req, res, next) {
   try {
-    const result = await service.getVerificationProgressReport(req.validated.query);
+    const filters = reportFilters(req.user, req.validated.query);
+    const result = await service.getVerificationProgressReport(filters);
     res.status(200).json({ data: result });
   } catch (error) {
     next(error);
@@ -83,7 +101,8 @@ export async function getVerificationProgressReport(req, res, next) {
 
 export async function getAssetUtilizationReport(req, res, next) {
   try {
-    const result = await service.getAssetUtilizationReport(req.validated.query);
+    const filters = isAdmin(req.user) ? scopeOrgFilters(req.user, req.validated.query) : req.validated.query;
+    const result = await service.getAssetUtilizationReport(filters);
     res.status(200).json({ data: result });
   } catch (error) {
     next(error);

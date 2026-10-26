@@ -26,6 +26,20 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+function AdminRoute({ children }) {
+  const { isAdmin, loading } = useAuth()
+  if (loading) return <div className="loading">Loading…</div>
+  if (!isAdmin) return <Navigate to="/" replace />
+  return children
+}
+
+function AuditRoute({ children }) {
+  const { canViewAuditLog, loading } = useAuth()
+  if (loading) return <div className="loading">Loading…</div>
+  if (!canViewAuditLog) return <Navigate to="/" replace />
+  return children
+}
+
 export default function App() {
   return (
     <Routes>
@@ -46,14 +60,14 @@ export default function App() {
         <Route path="issues" element={<Issues />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="catalog" element={<Catalog />} />
-        <Route path="users" element={<Users />} />
-        <Route path="vendors" element={<Vendors />} />
+        <Route path="users" element={<AdminRoute><Users /></AdminRoute>} />
+        <Route path="vendors" element={<AdminRoute><Vendors /></AdminRoute>} />
         <Route path="purchases" element={<Purchases />} />
         <Route path="transfers" element={<Transfers />} />
         <Route path="drop-boxes" element={<DropBoxes />} />
-        <Route path="blocks" element={<Blocks />} />
-        <Route path="audit-log" element={<AuditLog />} />
-        <Route path="reports" element={<Reports />} />
+        <Route path="blocks" element={<AdminRoute><Blocks /></AdminRoute>} />
+        <Route path="audit-log" element={<AuditRoute><AuditLog /></AuditRoute>} />
+        <Route path="reports" element={<AdminRoute><Reports /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

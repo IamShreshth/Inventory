@@ -33,6 +33,11 @@ export async function list(filters = {}) {
     conditions.push(`type = $${paramCount}`);
     values.push(filters.type);
   }
+  if (filters.org_unit_ids) {
+    paramCount++;
+    conditions.push(`ou.id = ANY($${paramCount}::uuid[])`);
+    values.push(filters.org_unit_ids);
+  }
 
   if (filters.is_active !== undefined) {
     paramCount++;

@@ -2,6 +2,8 @@ import argon2 from 'argon2';
 import { generateToken, verifyToken } from '../utils/paseto.util.js';
 import { pool } from '../db/pool.js';
 import logger from '../utils/logger.js';
+import { getActiveRolesForUser } from '../modules/roles/roles.repository.js';
+import { withTransaction } from '../db/transaction.js';
 
 const formatError = (code, message, details = []) => ({
   error: { code, message, details },
@@ -35,6 +37,7 @@ export const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json(formatError('UNAUTHORIZED', 'Invalid credentials'));
     }
+    const roles = await getActiveRolesForUser(user.id);
 
     const userPayload = { sub: user.id, email: user.institute_email };
 
@@ -54,7 +57,7 @@ export const login = async (req, res) => {
     return res.status(200).json({
       token,
       refresh_token,
-      user: { id: user.id, full_name: user.full_name, institute_email: user.institute_email },
+      user: { id: user.id, full_name: user.full_name, institute_email: user.institute_email, roles },
     });
   } catch (error) {
     (req.log || logger).error({ err: error }, 'Login error');
@@ -338,14 +341,19 @@ export const register = async (req, res) => {
 
     // Hash password and create user
     const hashedPassword = await argon2.hash(password);
-    const { rows } = await pool.query(
-      `INSERT INTO users (full_name, institute_email, roll_no, phone, programme, password_hash)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, full_name, institute_email, roll_no, phone, programme, admission_year, is_active, created_at, updated_at`,
-      [full_name, institute_email.toLowerCase(), roll_no, phone || null, programme || null, hashedPassword]
-    );
-
-    const user = rows[0];
+    const user = await withTransaction(async (client) => {
+      const { rows } = await client.query(
+        `INSERT INTO users (full_name, institute_email, roll_no, phone, programme, password_hash)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, full_name, institute_email, roll_no, phone, programme, admission_year, is_active, created_at, updated_at`,
+        [full_name, institute_email.toLowerCase(), roll_no, phone || null, programme || null, hashedPassword]
+      );
+      await client.query(
+        "INSERT INTO user_roles (user_id, role) VALUES ($1, 'borrower')",
+        [rows[0].id]
+      );
+      return rows[0];
+    });
 
     // Generate tokens
     const userPayload = { sub: user.id, email: user.institute_email };
@@ -365,7 +373,12 @@ export const register = async (req, res) => {
     return res.status(201).json({
       token,
       refresh_token,
-      user: { id: user.id, full_name: user.full_name, institute_email: user.institute_email },
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        institute_email: user.institute_email,
+        roles: await getActiveRolesForUser(user.id),
+      },
     });
   } catch (error) {
     (req.log || logger).error({ err: error }, 'Registration error');

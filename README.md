@@ -52,8 +52,19 @@ Open http://localhost:5173
 | Page | Purpose |
 |------|---------|
 | Login / Register | Auth |
-| Dashboard | Counts, overdue loans, open alerts |
+| Dashboard | Inventory counts, overdue loans, and open alerts; refresh and retry controls with loading and error states |
 | Assets | Search, create, delete equipment |
 | Borrowing | Request / issue / return / renew / cancel |
 | Alerts | Acknowledge, resolve, dismiss, generate |
 | Catalog | Categories, locations, org units |
+
+## Access roles
+
+| Access level | Assigned roles | Permissions |
+|--------------|----------------|-------------|
+| Superadmin | `super_admin` | Global access, including role and organization management |
+| Admin | `org_admin`, `berm_incharge` | Manage inventory and workflows within assigned organization units |
+| User | `borrower` | Read the available inventory sections and manage only their own borrowing |
+| Auditor | `auditor` | Read-only reports and audit information |
+
+Only superadmins can assign roles. Public registration and admin-created accounts receive the borrower role by default.

@@ -1,12 +1,16 @@
 // src/modules/transfers/transfers.controller.js
 import * as transfersService from './transfers.service.js';
+import { getAdminOrgIds, isAdmin, scopeOrgFilters } from '../../middleware/authorize.js';
 
 export async function listTransfers(req, res, next) {
   try {
     const { page, limit, sort, ...filters } = req.validated.query;
+    const scopedFilters = isAdmin(req.user)
+      ? scopeOrgFilters(req.user, filters)
+      : filters;
     const offset = (page - 1) * limit;
 
-    const result = await transfersService.listTransfers({ limit, offset, filters, sort });
+    const result = await transfersService.listTransfers({ limit, offset, filters: scopedFilters, sort });
 
     res.status(200).json({
       data: result.rows,

@@ -23,6 +23,11 @@ export async function createTestUser(userData = {}) {
     [data.full_name, data.institute_email, data.roll_no, data.phone, data.programme, data.password_hash, data.is_active]
   );
 
+  await pool.query(
+    "INSERT INTO user_roles (user_id, role) VALUES ($1, 'super_admin')",
+    [rows[0].id]
+  );
+
   return rows[0];
 }
 

@@ -2,8 +2,8 @@ import * as repository from './reports.repository.js';
 import { stringify } from 'csv-stringify/sync';
 
 // Dashboard services
-export async function getDashboardSummary() {
-  const summary = await repository.getDashboardSummary();
+export async function getDashboardSummary(borrowerId = null, orgIds = null) {
+  const summary = await repository.getDashboardSummary(borrowerId, orgIds);
   return summary;
 }
 

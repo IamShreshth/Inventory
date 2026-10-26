@@ -34,6 +34,11 @@ export async function listDropBoxes({ filters = {} }) {
     values.push(filters.org_unit_id);
     conditions.push(`db.org_unit_id = $${paramCount}`);
   }
+  if (filters.org_unit_ids) {
+    paramCount++;
+    values.push(filters.org_unit_ids);
+    conditions.push(`db.org_unit_id = ANY($${paramCount}::uuid[])`);
+  }
 
   if (filters.is_active !== undefined) {
     paramCount++;

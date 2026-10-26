@@ -9,23 +9,38 @@ export async function getUserByEmail(email) {
   return rows[0];
 }
 
-export async function createUser(userData) {
-  const { rows } = await pool.query(
+export async function createUser(userData, client = pool) {
+  const { rows } = await client.query(
     `INSERT INTO users (full_name, institute_email, roll_no, phone, programme, password_hash)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING id, full_name, institute_email, roll_no, phone, programme, admission_year, is_active, created_at, updated_at`,
     [userData.full_name, userData.institute_email, userData.roll_no, userData.phone, userData.programme, userData.password_hash]
   );
+  await client.query(
+    "INSERT INTO user_roles (user_id, org_unit_id, role) VALUES ($1, $2, 'borrower')",
+    [rows[0].id, userData.org_unit_id || null]
+  );
   return rows[0];
 }
 
-export async function listUsers({ limit, offset, q }) {
+export async function listUsers({ limit, offset, q, org_unit_ids }) {
   const values = [];
   const filters = [];
 
   if (q) {
     values.push(`%${q}%`);
     filters.push(`(full_name ILIKE $${values.length} OR institute_email ILIKE $${values.length} OR roll_no ILIKE $${values.length})`);
+  }
+
+  if (org_unit_ids) {
+    values.push(org_unit_ids);
+    filters.push(`(
+      EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = users.id AND ur.org_unit_id = ANY($${values.length}::uuid[]))
+      OR EXISTS (
+        SELECT 1 FROM issues i JOIN assets a ON a.id = i.asset_id
+        WHERE i.borrower_id = users.id AND a.owner_org_id = ANY($${values.length}::uuid[])
+      )
+    )`);
   }
 
   const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';

@@ -22,16 +22,16 @@ export async function list(filters) {
   };
 }
 
-export async function getById(id) {
-  const log = await repository.getById(id);
+export async function getById(id, orgUnitIds = null) {
+  const log = await repository.getById(id, orgUnitIds);
   if (!log) {
     throw new AppError('AUDIT_LOG_NOT_FOUND', 'Audit log entry not found', 404);
   }
   return log;
 }
 
-export async function getByEntity(entityType, entityId) {
-  return repository.getByEntity(entityType, entityId);
+export async function getByEntity(entityType, entityId, orgUnitIds = null) {
+  return repository.getByEntity(entityType, entityId, orgUnitIds);
 }
 
 export async function logChange(data) {

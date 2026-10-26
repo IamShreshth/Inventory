@@ -7,8 +7,10 @@ import {
   listQuerySchema 
 } from './vendors.schemas.js';
 import * as controller from './vendors.controller.js';
+import { requireAdmin } from '../../middleware/authorize.js';
 
 const router = Router();
+router.use(requireAdmin);
 
 router.get('/', validate(listQuerySchema, 'query'), controller.list);
 router.post('/', validate(createVendorSchema, 'body'), controller.create);

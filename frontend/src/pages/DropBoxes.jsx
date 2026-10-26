@@ -3,6 +3,7 @@ import { dropBoxesApi, locationsApi, orgUnitsApi } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
+import { useAuth } from '../auth/AuthContext'
 
 const emptyForm = {
   name: '',
@@ -13,6 +14,7 @@ const emptyForm = {
 }
 
 export default function DropBoxes() {
+  const { isAdmin } = useAuth()
   const [items, setItems] = useState([])
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 })
   const [locations, setLocations] = useState([])
@@ -188,16 +190,18 @@ export default function DropBoxes() {
           <h1>Drop boxes</h1>
           <p>Return drop points for borrowed equipment.</p>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => {
-            setForm(emptyForm)
-            setShowCreate(true)
-          }}
-        >
-          Add drop box
-        </button>
+        {isAdmin ? (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setForm(emptyForm)
+              setShowCreate(true)
+            }}
+          >
+            Add drop box
+          </button>
+        ) : null}
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
@@ -232,18 +236,20 @@ export default function DropBoxes() {
                       </span>
                     </td>
                     <td>
-                      <div className="row-actions">
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
+                      {isAdmin ? (
+                        <div className="row-actions">
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -254,7 +260,7 @@ export default function DropBoxes() {
         <Pagination pagination={pagination} onChange={setPage} />
       </div>
 
-      {showCreate ? (
+      {showCreate && isAdmin ? (
         <Modal
           title="Add drop box"
           onClose={() => setShowCreate(false)}
@@ -275,7 +281,7 @@ export default function DropBoxes() {
         </Modal>
       ) : null}
 
-      {editItem ? (
+      {editItem && isAdmin ? (
         <Modal
           title="Edit drop box"
           onClose={() => setEditItem(null)}

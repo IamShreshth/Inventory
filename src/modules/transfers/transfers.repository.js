@@ -57,11 +57,24 @@ export async function findTransfers({ filters, limit, offset, sort = 't.created_
     conditions.push(`t.to_org_id = $${paramCount++}`);
     params.push(filters.to_org_id);
   }
+  if (filters.org_unit_ids) {
+    conditions.push(`(
+      t.from_org_id = ANY($${paramCount}::uuid[])
+      OR t.to_org_id = ANY($${paramCount}::uuid[])
+      OR EXISTS (
+        SELECT 1 FROM assets scoped_asset
+        WHERE scoped_asset.id = t.asset_id
+          AND scoped_asset.owner_org_id = ANY($${paramCount}::uuid[])
+      )
+    )`);
+    params.push(filters.org_unit_ids);
+    paramCount++;
+  }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   // Get total count
-  const countQuery = `SELECT COUNT(*) FROM transfers t ${whereClause}`;
+  const countQuery = `SELECT COUNT(*) FROM transfers t JOIN assets a ON a.id = t.asset_id ${whereClause}`;
   const countResult = await pool.query(countQuery, params);
   const total = parseInt(countResult.rows[0].count, 10);
 

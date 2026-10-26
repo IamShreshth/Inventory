@@ -44,6 +44,16 @@ export async function listIssues({ limit, offset, filters = {} }) {
     conditions.push(`i.asset_id = $${paramCount}`);
   }
 
+  if (filters.org_unit_ids) {
+    paramCount++;
+    values.push(filters.org_unit_ids);
+    conditions.push(`EXISTS (
+      SELECT 1 FROM assets scoped_asset
+      WHERE scoped_asset.id = i.asset_id
+        AND scoped_asset.owner_org_id = ANY($${paramCount}::uuid[])
+    )`);
+  }
+
   if (filters.overdue === 'true') {
     conditions.push(`i.due_at < NOW() AND i.status IN ('active', 'dropped')`);
   }
@@ -145,7 +155,7 @@ export async function deleteIssue(id) {
   return rows[0];
 }
 
-export async function getOverdueIssues() {
+export async function getOverdueIssues(borrowerId = null, orgUnitIds = null) {
   const { rows } = await pool.query(
     `SELECT 
       i.*,
@@ -158,12 +168,15 @@ export async function getOverdueIssues() {
     JOIN assets a ON i.asset_id = a.id
     WHERE i.due_at < NOW() 
       AND i.status IN ('active', 'dropped')
+      AND ($1::uuid IS NULL OR i.borrower_id = $1)
+      AND ($2::uuid[] IS NULL OR a.owner_org_id = ANY($2::uuid[]))
     ORDER BY i.due_at ASC`
+    , [borrowerId, orgUnitIds]
   );
   return rows;
 }
 
-export async function getDroppedIssues() {
+export async function getDroppedIssues(orgUnitIds = null) {
   const { rows } = await pool.query(
     `SELECT 
       i.*,
@@ -178,7 +191,9 @@ export async function getDroppedIssues() {
     LEFT JOIN drop_boxes db ON i.drop_box_id = db.id
     LEFT JOIN locations l ON db.location_id = l.id
     WHERE i.status = 'dropped' AND i.returned_at IS NULL
-    ORDER BY i.dropped_at ASC`
+      AND ($1::uuid[] IS NULL OR a.owner_org_id = ANY($1::uuid[]))
+    ORDER BY i.dropped_at ASC`,
+    [orgUnitIds]
   );
   return rows;
 }
