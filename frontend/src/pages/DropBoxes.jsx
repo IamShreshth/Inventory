@@ -13,7 +13,7 @@ const emptyForm = {
   is_active: true,
 }
 
-export default function DropBoxes() {
+export default function DropBoxes({ embedded = false }) {
   const { isAdmin } = useAuth()
   const [items, setItems] = useState([])
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 })
@@ -185,7 +185,7 @@ export default function DropBoxes() {
 
   return (
     <div>
-      <div className="page-header">
+      {!embedded ? <div className="page-header">
         <div>
           <h1>Drop boxes</h1>
           <p>Return drop points for borrowed equipment.</p>
@@ -202,7 +202,20 @@ export default function DropBoxes() {
             Add drop box
           </button>
         ) : null}
-      </div>
+      </div> : isAdmin ? (
+        <div className="toolbar toolbar-end">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setForm(emptyForm)
+              setShowCreate(true)
+            }}
+          >
+            Add drop box
+          </button>
+        </div>
+      ) : null}
 
       {error ? <div className="error-banner">{error}</div> : null}
 

@@ -7,7 +7,6 @@ import AuditLog from './pages/AuditLog'
 import Blocks from './pages/Blocks'
 import Catalog from './pages/Catalog'
 import Dashboard from './pages/Dashboard'
-import DropBoxes from './pages/DropBoxes'
 import ForgotPassword from './pages/ForgotPassword'
 import Issues from './pages/Issues'
 import Login from './pages/Login'
@@ -64,7 +63,7 @@ export default function App() {
         <Route path="vendors" element={<AdminRoute><Vendors /></AdminRoute>} />
         <Route path="purchases" element={<Purchases />} />
         <Route path="transfers" element={<Transfers />} />
-        <Route path="drop-boxes" element={<DropBoxes />} />
+        <Route path="drop-boxes" element={<Navigate to="/catalog?tab=drop-boxes" replace />} />
         <Route path="blocks" element={<AdminRoute><Blocks /></AdminRoute>} />
         <Route path="audit-log" element={<AuditRoute><AuditLog /></AuditRoute>} />
         <Route path="reports" element={<AdminRoute><Reports /></AdminRoute>} />

@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { categoriesApi, locationsApi, orgUnitsApi } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
+import DropBoxes from './DropBoxes'
 
 const tabs = [
   { id: 'categories', label: 'Categories' },
   { id: 'locations', label: 'Locations' },
   { id: 'orgs', label: 'Org units' },
+  { id: 'drop-boxes', label: 'Drop boxes' },
 ]
 
 export default function Catalog() {
   const { isAdmin, isSuperAdmin } = useAuth()
-  const [tab, setTab] = useState('categories')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedTab = searchParams.get('tab')
+  const tab = tabs.some((item) => item.id === requestedTab) ? requestedTab : 'categories'
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -22,6 +27,10 @@ export default function Catalog() {
   const [form, setForm] = useState({})
 
   const load = useCallback(async () => {
+    if (tab === 'drop-boxes') {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -289,14 +298,14 @@ export default function Catalog() {
       ) : null}
     </>
   )
-  const canManageTab = tab === 'locations' ? isAdmin : isSuperAdmin
+  const canManageTab = tab === 'drop-boxes' ? false : tab === 'locations' ? isAdmin : isSuperAdmin
 
   return (
     <div>
       <div className="page-header">
         <div>
           <h1>Catalog</h1>
-          <p>Categories, storage locations, and organization units.</p>
+          <p>Categories, locations, organization units, and return drop boxes.</p>
         </div>
         {canManageTab ? (
           <button type="button" className="btn btn-primary" onClick={openCreate}>
@@ -313,14 +322,15 @@ export default function Catalog() {
             key={t.id}
             type="button"
             className={`tab ${tab === t.id ? 'active' : ''}`}
-            onClick={() => setTab(t.id)}
+            aria-pressed={tab === t.id}
+            onClick={() => setSearchParams(t.id === 'categories' ? {} : { tab: t.id })}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      <div className="panel">
+      {tab === 'drop-boxes' ? <DropBoxes embedded /> : <div className="panel">
         <div className="table-wrap">
           {loading ? (
             <div className="loading">Loading…</div>
@@ -452,7 +462,7 @@ export default function Catalog() {
             </table>
           )}
         </div>
-      </div>
+      </div>}
 
       {showCreate && canManageTab ? (
         <Modal
