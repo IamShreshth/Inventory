@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { assetsApi, categoriesApi } from '../api/client'
+import { findCategoryNode, isAssetCategoryLeaf } from '../categoryTree'
 import CascadingCategoryPicker from '../components/CascadingCategoryPicker'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
@@ -26,17 +27,6 @@ const emptyForm = {
   serial_no: '',
   description: '',
   is_issuable: true,
-}
-
-function findCategoryNode(nodes, id) {
-  for (const node of nodes) {
-    if (node.id === id) return node
-    if (node.children?.length) {
-      const found = findCategoryNode(node.children, id)
-      if (found) return found
-    }
-  }
-  return null
 }
 
 export default function Assets() {
@@ -99,8 +89,12 @@ export default function Assets() {
 
   async function handleCreate(e) {
     e.preventDefault()
-    setSaving(true)
     setError('')
+    if (!isAssetCategoryLeaf(categoryTree, form.category_id)) {
+      setError('Choose a Level 2 to 4 leaf sub-category before saving this asset.')
+      return
+    }
+    setSaving(true)
     try {
       await assetsApi.create({
         name: form.name.trim(),
@@ -130,8 +124,12 @@ export default function Assets() {
 
   async function handleUpdate(e) {
     e.preventDefault()
-    setSaving(true)
     setError('')
+    if (!isAssetCategoryLeaf(categoryTree, form.category_id)) {
+      setError('Choose a Level 2 to 4 leaf sub-category before saving this asset.')
+      return
+    }
+    setSaving(true)
     try {
       await assetsApi.update(editItem.id, {
         name: form.name.trim(),
@@ -395,6 +393,7 @@ export default function Assets() {
             className="form"
             onSubmit={editItem ? handleUpdate : handleCreate}
           >
+            {error ? <div className="error-banner" role="alert">{error}</div> : null}
             <div className="field">
               <label htmlFor="name">Name</label>
               <input

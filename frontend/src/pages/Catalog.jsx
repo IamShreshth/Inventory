@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { categoriesApi, locationsApi, orgUnitsApi } from '../api/client'
+import { flattenCategoryTree } from '../categoryTree'
 import { useAuth } from '../auth/AuthContext'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
@@ -14,21 +15,6 @@ const tabs = [
   { id: 'orgs', label: 'Org units' },
   { id: 'drop-boxes', label: 'Drop boxes' },
 ]
-
-function flattenTree(nodes, expandedIds) {
-  const rows = []
-  function walk(list) {
-    for (const node of list) {
-      if (node.is_legacy) continue
-      rows.push(node)
-      if (node.children?.length && expandedIds.has(node.id)) {
-        walk(node.children)
-      }
-    }
-  }
-  walk(nodes)
-  return rows
-}
 
 function collectExpandableIds(nodes, ids = new Set()) {
   for (const node of nodes) {
@@ -378,7 +364,7 @@ export default function Catalog() {
     </>
   )
   const canManageTab = tab === 'drop-boxes' ? false : tab === 'locations' ? isAdmin : isSuperAdmin
-  const visibleCategoryRows = tab === 'categories' ? flattenTree(items, expandedIds) : []
+  const visibleCategoryRows = tab === 'categories' ? flattenCategoryTree(items, expandedIds) : []
 
   return (
     <div>

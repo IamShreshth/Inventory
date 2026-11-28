@@ -1,15 +1,5 @@
 import { useMemo } from 'react'
-
-function findSelectionPath(nodes, targetId) {
-  for (const node of nodes) {
-    if (node.id === targetId) return [node]
-    if (node.children?.length) {
-      const childPath = findSelectionPath(node.children, targetId)
-      if (childPath.length > 0) return [node, ...childPath]
-    }
-  }
-  return []
-}
+import { findCategoryPath, getParentSelection } from '../categoryTree'
 
 export default function CascadingCategoryPicker({
   tree = [],
@@ -25,7 +15,7 @@ export default function CascadingCategoryPicker({
 
   const selectedPath = useMemo(() => {
     if (!value) return []
-    return findSelectionPath(activeTree, value)
+    return findCategoryPath(activeTree, value)
   }, [activeTree, value])
 
   const level1 = selectedPath[0] || null
@@ -44,12 +34,8 @@ export default function CascadingCategoryPicker({
         onChange('', null)
         return
       }
-      const parent = selectedPath[levelIndex - 1]
-      if (mode === 'any') {
-        onChange(parent ? parent.id : '', parent || null)
-      } else {
-        onChange('', parent || null)
-      }
+      const selection = getParentSelection(selectedPath, levelIndex)
+      onChange(selection.id, selection.category)
       return
     }
 
@@ -62,12 +48,6 @@ export default function CascadingCategoryPicker({
       return
     }
 
-    // In 'leaf' mode, only emit the category id once a Level 2-4 leaf is reached;
-    // otherwise emit '' while keeping the partial selection visible via local path?
-    // Wait: since selectedPath is derived from `value`, if we emit `node.id` for intermediate
-    // nodes, the parent form sees `form.category_id` and we also pass `isLeaf` or check it.
-    // Even better: emit `node.id` so the cascading dropdowns stay populated, and show a
-    // clear leaf indicator / validation state!
     onChange(node.id, node)
   }
 
